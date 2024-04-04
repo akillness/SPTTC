@@ -1,5 +1,8 @@
 import whisper
 import torch
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context # ERROR to except : urlopen certification
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
