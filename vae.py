@@ -194,39 +194,45 @@ class Model(nn.Module):
         x_hat = self.decoder(z_quantized)
         
         return x_hat, commitment_loss, codebook_loss, perplexity
-    
-encoder = Encoder(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=latent_dim)
-codebook = VQEmbeddingEMA(n_embeddings=n_embeddings, embedding_dim=latent_dim)
-decoder = Decoder(input_dim=latent_dim, hidden_dim=hidden_dim, output_dim=output_dim)
 
-model = Model(Encoder=encoder, Codebook=codebook, Decoder=decoder).to(DEVICE)
 
-from torch.optim import Adam
+def main():
 
-mse_loss = nn.MSELoss()
+    encoder = Encoder(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=latent_dim)
+    codebook = VQEmbeddingEMA(n_embeddings=n_embeddings, embedding_dim=latent_dim)
+    decoder = Decoder(input_dim=latent_dim, hidden_dim=hidden_dim, output_dim=output_dim)
 
-optimizer = Adam(model.parameters(), lr=lr)
+    model = Model(Encoder=encoder, Codebook=codebook, Decoder=decoder).to(DEVICE)
 
-print("Start training VQ-VAE...")
-model.train()
+    from torch.optim import Adam
 
-for epoch in range(epochs):
-    overall_loss = 0
-    for batch_idx, (x, _) in enumerate(train_loader):
-        x = x.to(DEVICE)
+    mse_loss = nn.MSELoss()
 
-        optimizer.zero_grad()
+    optimizer = Adam(model.parameters(), lr=lr)
 
-        x_hat, commitment_loss, codebook_loss, perplexity = model(x)
-        recon_loss = mse_loss(x_hat, x)
+    print("Start training VQ-VAE...")
+    model.train()
+
+    for epoch in range(epochs):
+        overall_loss = 0
+        for batch_idx, (x, _) in enumerate(train_loader):
+            x = x.to(DEVICE)
+
+            optimizer.zero_grad()
+
+            x_hat, commitment_loss, codebook_loss, perplexity = model(x)
+            recon_loss = mse_loss(x_hat, x)
+            
+            loss =  recon_loss + commitment_loss * commitment_beta + codebook_loss
+                    
+            loss.backward()
+            optimizer.step()
+            
+            if batch_idx % print_step ==0: 
+                print("epoch:", epoch + 1, "(", batch_idx + 1, ") recon_loss:", recon_loss.item(), " perplexity: ", perplexity.item(), 
+                " commit_loss: ", commitment_loss.item(), "\n\t codebook loss: ", codebook_loss.item(), " total_loss: ", loss.item(), "\n")
         
-        loss =  recon_loss + commitment_loss * commitment_beta + codebook_loss
-                
-        loss.backward()
-        optimizer.step()
-        
-        if batch_idx % print_step ==0: 
-            print("epoch:", epoch + 1, "(", batch_idx + 1, ") recon_loss:", recon_loss.item(), " perplexity: ", perplexity.item(), 
-              " commit_loss: ", commitment_loss.item(), "\n\t codebook loss: ", codebook_loss.item(), " total_loss: ", loss.item(), "\n")
-    
-print("Finish!!")
+    print("Finish!!")
+
+if __name__ == "__main__":
+    main()
