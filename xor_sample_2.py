@@ -3,6 +3,8 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 
+import torch.nn.functional as F
+
 # XOR 문제 1개의 input/hidden/output 레이어의 MLP를 classification으로 활용하여 XOR 문제를 푼다
 
 X = np.array([[0,0],[1,0],[0,1],[1,1]]) # 입력
@@ -10,8 +12,8 @@ Y = np.array([[1,0],[0,1],[0,1],[1,0]]) # 출력
 
 print('numpy:',X,Y)
 
-X = torch.tensor(X, dtype=torch.float64) # numpy -> torch (double)
-Y = torch.tensor(Y, dtype=torch.float64) # numpy -> torch (double)
+X = torch.tensor(X, dtype=torch.float32) # numpy -> torch (double)
+Y = torch.tensor(Y, dtype=torch.float32) # numpy -> torch (double)
 
 print('torch:',X,Y)
 
@@ -24,9 +26,9 @@ class XOR(nn.Module):
     
     def forward(self, x):
         x = self.lin1(x)
-        x = nn.Sigmoid(x)
+        x = F.sigmoid(x)
         x = self.lin2(x)
-        x = nn.Sigmoid(x)
+        x = F.sigmoid(x)
         return x
 
 
