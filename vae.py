@@ -96,16 +96,21 @@ class VQEmbeddingEMA(nn.Module):
         
         init_bound = 1 / n_embeddings
         embedding = torch.Tensor(n_embeddings, embedding_dim)
-        embedding.uniform_(-init_bound, init_bound)
+        embedding.uniform_(-init_bound, init_bound) # tensor 값들을 균등 초기화
         self.register_buffer("embedding", embedding)
         self.register_buffer("ema_count", torch.zeros(n_embeddings))
         self.register_buffer("ema_weight", self.embedding.clone())
-
+        '''
+        nn.Module.register_buffer('attribute_name', t)
+            모듈 내에서 tensor t는 self.attribute_name 으로 접근 가능하다.
+            Tensor t는 학습되지 않는다. (중요)
+            model.cuda() 시에 t도 함께 GPU로 간다.
+        '''
     def encode(self, x):
         M, D = self.embedding.size()
         x_flat = x.detach().reshape(-1, D)
 
-        distances = (-torch.cdist(x_flat, self.embedding, p=2)) ** 2
+        distances = (-torch.cdist(x_flat, self.embedding, p=2)) ** 2 # torch.cdist 는 두 vector를 pair하여 normalize 한 distance. p-norm distnace
 
         indices = torch.argmin(distances.float(), dim=-1)
         quantized = F.embedding(indices, self.embedding)
@@ -113,7 +118,8 @@ class VQEmbeddingEMA(nn.Module):
         return quantized, indices.view(x.size(0), x.size(1))
     
     def retrieve_random_codebook(self, random_indices):
-        quantized = F.embedding(random_indices, self.embedding)
+        # Generate a simple lookup table that looks up embeddings in a fixed dictionary and size
+        quantized = F.embedding(random_indices, self.embedding) # 고정된 사정 및 크기에서 임베딩을 조회하는 간단한 조회 테이블 
         quantized = quantized.transpose(1, 3)
         
         return quantized
@@ -206,7 +212,7 @@ def main():
 
     from torch.optim import Adam
 
-    mse_loss = nn.MSELoss()
+    mse_loss = nn.MSELoss() # nn 모듈의 Loss 설정시 해당 과정 필요
 
     optimizer = Adam(model.parameters(), lr=lr)
 
