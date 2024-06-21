@@ -1,0 +1,17 @@
+# Pipelines Methods
+
+> Instruction
+
+
+|Task| Description| Modality| Pipeline identifier|
+|:--- | :--- | :---| :--- |
+|Text classification|assign a label to a given sequence of text	|NLP|pipeline(task=“sentiment-analysis”)|
+|Text generation | generate text given a prompt|NLP|pipeline(task=“text-generation”)|
+|Summarization|generate a summary of a sequence of text or document|NLP|pipeline(task=“summarization”)|Image classification	assign a label to an image|Computer vision	pipeline(task=“image-classification”)|
+|Image segmentation|assign a label to each individual pixel of an image (supports semantic, panoptic, and instance segmentation)|Computer vision|pipeline(task=“image-segmentation”)|
+|Object detection| predict the bounding boxes and classes of objects in an image|Computer vision|pipeline(task=“object-detection”)|
+|Audio classification|assign a label to some audio data | Audio | pipeline(task=“audio-classification”)|
+|Automatic speech recognition|transcribe speech into text | Audio |pipeline(task=“automatic-speech-recognition”)|
+|Visual question answering | answer a question about the image, given an image and a question|Multimodal|pipeline(task=“vqa”)|
+|Document question answering | answer a question about the document, given a document and a question|Multimodal | pipeline(task=“document-question-answering”)|
+|Image captioning | generate a caption for a given image | Multimodal |pipeline(task=“image-to-text”)|
