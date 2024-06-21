@@ -56,7 +56,7 @@ model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-bas
 
 ~~~
 
-> [! Note]
+> [!Note]
 > You will see a warning about some of the pretrained weights not being used and some weights being randomly initialized. Don’t worry, this is completely normal! The pretrained head of the BERT model is discarded, and replaced with a randomly initialized classification head. You will fine-tune this new model head on your sequence classification task, transferring the knowledge of the pretrained model to it.
 
 
