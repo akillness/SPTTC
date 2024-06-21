@@ -1,6 +1,6 @@
 # Pipelines Methods
 
-> Instruction
+> Instruction : <https://huggingface.co/docs/transformers/main/en/main_classes/pipelines>
 
 
 |Task| Description| Modality| Pipeline identifier|
