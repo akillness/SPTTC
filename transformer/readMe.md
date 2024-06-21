@@ -1,4 +1,4 @@
-# Pipelines Methods
+## Pipelines Methods
 
 > Instruction : <https://huggingface.co/docs/transformers/main/en/main_classes/pipelines>
 
