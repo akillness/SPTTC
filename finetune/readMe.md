@@ -261,3 +261,12 @@ For more fine-tuning examples, refer to:
 
 🤗 [Transformers Notebooks](https://huggingface.co/docs/transformers/main/en/notebooks) contains various notebooks on how to fine-tune a model for specific tasks in PyTorch and TensorFlow.
 
+* * *
+
+### Preprocess
+Before you can train a model on a dataset, it needs to be preprocessed into the expected model input format. Whether your data is text, images, or audio, they need to be converted and assembled into batches of tensors. 🤗 Transformers provides a set of preprocessing classes to help prepare your data for the model. In this tutorial, you’ll learn that for:
+
+- Text, use a [Tokenizer](https://huggingface.co/docs/transformers/main/en/main_classes/tokenizer) to convert text into a sequence of tokens, create a numerical representation of the tokens, and assemble them into tensors.
+- Speech and audio, use a [Feature extractor](https://huggingface.co/docs/transformers/main/en/main_classes/feature_extractor) to extract sequential features from audio waveforms and convert them into tensors.
+- Image inputs use a [ImageProcessor](https://huggingface.co/docs/transformers/main/en/main_classes/image_processor) to convert images into tensors.
+- Multimodal inputs, use a [Processor](https://huggingface.co/docs/transformers/main/en/main_classes/processors) to combine a tokenizer and a feature extractor or image processor.
