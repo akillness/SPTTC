@@ -1,6 +1,10 @@
 ## Pipelines Methods
 
-> Instruction : <https://huggingface.co/docs/transformers/main/en/main_classes/pipelines>
+> [!IMPORTANT] 
+> Description : <https://huggingface.co/docs/transformers/main/en/main_classes/pipelines>
+
+> [!TIP]
+> Examples : <https://github.com/huggingface/transformers/tree/main/examples/pytorch>
 
 
 |Task| Description| Modality| Pipeline identifier|
