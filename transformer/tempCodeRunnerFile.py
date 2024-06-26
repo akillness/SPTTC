@@ -1,1 +1,0 @@
-for result in results:
