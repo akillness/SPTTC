@@ -15,5 +15,37 @@
 
 Tokenizer는 Word를 Computation 하기 위한 숫자 값으로 Embedding 한 Lookup Table 과 같은 개념으로 이해하면 된다. ( Word2Vec 개념 )
 
+Word2Vec Model을 사용하기 위해서는 gensim package를 이용해 사용가능
+~~~sh
+!pip install gensim
+~~~
+
+~~~py
+import gensim.downloader as api
+for model_name, model_data in sorted(api.info()['models'].items()):
+    print(
+        '%s (%d records): %s' % (
+            model_name,
+            model_data.get('num_records', -1),
+            model_data['description'][:40] + '...',
+        )
+    )
+
+model = api.load("word2vec-google-news-300")
+
+print(model.most_similar("cat"))
+
+print(model.most_similar_cosmul(positive=['Seoul', 'France'], negative=['Paris']))
+
+
+print(model.most_similar_cosmul(positive=['father','woman'], negative=['man']))
+print(model.most_similar_cosmul(positive=['brother','woman'], negative=['man']))
+
+
+print(model.most_similar_cosmul(positive=['soju','mexico'], negative=['korea']))
+print(model.most_similar_cosmul(positive=['soju','russia'], negative=['korea']))
+
+
+~~~
 이해를 돕기 위해 Vector Representation 방식으로는 one-hot encoding 을 주로 설명한다.
 
