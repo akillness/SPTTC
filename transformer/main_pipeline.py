@@ -1,7 +1,11 @@
 import torch
 from transformers import pipeline
 
-device = torch.device("mps")
+device = torch.device("cpu")
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
 
 
 ## Sementic 에 대한 감성 분석
