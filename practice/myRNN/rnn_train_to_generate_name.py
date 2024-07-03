@@ -37,15 +37,6 @@ class MyRNN(nn.Module):
 
     def get_hidden(self): # hidden state 는 초기 0 tensor로 구성
         return torch.zeros(1, self.hidden_size,device=device) # batch size 1 로 고정
-    
-def nameToTensor(name, unique_chars):
-    n_letters = len(unique_chars)
-    tensor = torch.zeros(len(name), n_letters)
-    for char_idx, char in enumerate(name):
-        letter_idx = unique_chars.find(char)
-        assert letter_idx != -1, f"char is {name}, {char}"
-        tensor[char_idx][letter_idx] = 1
-    return tensor
 
 # Representation from tonkens to one hot encoding
 def nameToOneHot(name,tokens):

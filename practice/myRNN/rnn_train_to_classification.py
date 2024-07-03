@@ -49,7 +49,8 @@ def main():
     # import os
 
     # print(os.getcwd())
-    df = pd.read_csv('./practice/myRNN/name_gender_filtered.csv')
+    # df = pd.read_csv('./practice/myRNN/name_gender_filtered.csv')
+    df = pd.read_csv('./name_gender_filtered.csv')
     unique_chars = set()
 
     for name in df['Name']:
