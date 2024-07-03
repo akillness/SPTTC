@@ -2,6 +2,10 @@ import pandas as pd
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F 
+
+from tqdm import tqdm
+
 from torch.optim import Adam, SGD
 
 from torch.utils.tensorboard import SummaryWriter 
@@ -43,6 +47,31 @@ def nameToTensor(name, unique_chars):
         tensor[char_idx][letter_idx] = 1
     return tensor
 
+# Representation from tonkens to one hot encoding
+def nameToOneHot(name,tokens):
+    # Add start and end tokens to the name
+    tokenized_name = ['<S>'] + list(name) + ['<E>']
+    int_tensor = torch.tensor([tokens[char] for char in tokenized_name]) # token의 index 값 설정
+    one_hot_encoded = F.one_hot(int_tensor,num_classes=len(tokens)).float() # indices로부터 생성하기 위한 vector 설정
+    return one_hot_encoded
+
+@torch.no_grad()
+def generateName(model, input_tokens, output_tokens):
+    model.eval()
+    start_token_idx = torch.tensor(input_tokens['<S>'])
+    one_hot_encode = F.one_hot(start_token_idx,num_classes=len(input_tokens)).float()
+    hidden = model.get_hidden()
+    char_list = [] #
+    for i in range(20):
+        out_score, hidden = model(one_hot_encode[None,:].to(device),hidden) # [None,:] 하면 2차원 배열로 표현
+        score_probability = F.softmax(out_score[0],dim=-1) # logit score를 probability score로 softmax 변환
+        out_idx = torch.multinomial(score_probability,1).item() # multinomial 은 input row의 distibution을 따라 sample 결과 반환
+        if out_idx == input_tokens['<E>']:
+            break
+        char_list.append(output_tokens[out_idx])
+        one_hot_encode = F.one_hot(torch.tensor(out_idx),num_classes=len(input_tokens)).float() # RNN의 다음 input encode 값으로 사용하기 위해 update
+    print(''.join(char_list))
+
 def main():
     # import os
 
@@ -55,17 +84,18 @@ def main():
         
     unique_chars = sorted(list(unique_chars))
     unique_chars = ''.join(unique_chars)
-    print(unique_chars)
+    sorted_chars = sorted(set(unique_chars))
 
-    n_letters = len(unique_chars)
-    
-    # tokenizer for labeled data 
-    # Classification problem 을 위해 prediction dictionary 설정
-    gen2num = {'F':0, 'M':1}
-    num2gen = {0:'F', 1:'M'}
+    # predefine tokens to generate
+    stoi = {s:i for i,s in enumerate(sorted_chars)}
+    stoi['<S>'] = len(stoi)
+    stoi['<E>'] = len(stoi)
+    itos = {i:s for s,i in stoi.items()}
+    print(itos) 
 
-    n_hidden = 32
-    rnn_model = MyRNN(n_letters, n_hidden, 2)
+    n_letters = len(stoi)
+    n_hidden = 1024
+    rnn_model = MyRNN(n_letters, n_hidden, n_letters)
     rnn_model = rnn_model.to(device)
 
     loss_fn = nn.CrossEntropyLoss() # CrossEntropyLoss term 설정 
@@ -76,51 +106,46 @@ def main():
 
 
     ''' Summary writer for tensorboard '''
-    writer = SummaryWriter('./practice/myRNN/logs/')
+    writer = SummaryWriter('./practice/myRNN/logs_generate/')
 
     ''' Section of traning '''
-
-    rnn_model.train() # torch module 의 state 설정
-    for epoch_idx in range(200): # training 하기 위한 epoch 수 설정
+    for epoch_idx in tqdm(range(100)): # training 하기 위한 epoch 수 설정
         shuffled_df = df.sample(frac=1).reset_index(drop=True) # dataframe row를 shuffle 하고 index reset
 
-        total_loss = 0.
-        correct_predictions = 0
-        total_predictions = 0
-
-        for index, row in shuffled_df.iterrows(): # data 의 row 수 만큼 iteration 설정 ( 현재, 전체 데이터 수를 하나의 batch 로 사용 - deteministic )
-            input_tensor = nameToTensor(row['Name'],unique_chars).to(device)
-            target_tensor = torch.tensor([gen2num[row['Gender']]], dtype=torch.long).to(device)
-
+        crnt_loss = 0.        
+        rnn_model.train() # torch module 의 state 설정
+        for _, row in shuffled_df.iterrows(): # data 의 row 수 만큼 iteration 설정 ( 현재, 전체 데이터 수를 하나의 batch 로 사용 - deteministic )
+            name_one_hot = nameToOneHot(row['Name'],stoi).to(device)
             hidden = rnn_model.get_hidden() # 매 epoch 마다 hidden state 초기화
-
             rnn_model.zero_grad()
 
-            for char_idx in range(input_tensor.size()[0]):
-                char_tensor = input_tensor[char_idx]
-                output, hidden = rnn_model(char_tensor[None,:], hidden)
+            losses= []
+            for char_idx in range(len(name_one_hot)-1):
+                input_tensor = name_one_hot[char_idx].to(device)
+                target_char = name_one_hot[char_idx+1].to(device)
+                target_class = torch.argmax(target_char,-1) # target char index 출력
+                out_score,hidden = rnn_model(input_tensor[None,:].to(device),hidden)
+                losses.append(loss_fn(out_score[0],target_class)) # score 와 target token vector 값을 이용해 loss 설정
 
-            loss = loss_fn(output, target_tensor)
+
+            loss = sum(losses) # input d
             loss.backward()
             optimizer.step()
 
-            total_loss += loss.item()
-            predicted_index = torch.argmax(output, 1)
-            correct_predictions += (predicted_index == target_tensor).sum().item()
-            total_predictions += 1
+            crnt_loss += loss.item()
 
-        average_loss = total_loss / total_predictions
-        accuracy = 100 * correct_predictions / total_predictions
-        print(f'Epoch: {epoch_idx}, Loss: {average_loss:.4f}, Accuracy: {accuracy:.2f}%')
+        generateName(rnn_model,stoi,itos)
+        average_loss = crnt_loss / len(df)
+
+        print(f'Iter idx {epoch_idx}, Loss: {average_loss:.4f}')
 
         # Write scalar datas
         writer.add_scalar("Train/Loss", average_loss, epoch_idx) 
-        writer.add_scalar("Train/Accuracy", accuracy, epoch_idx) 
         
         ''' Save model by using static_dic() '''
-        if epoch_idx % 20 == 0:
+        if (epoch_idx+1) % 20 == 0:
             # Save
-            torch.save(rnn_model.state_dict(), './practice/myRNN/myRNN.pt')
+            torch.save(rnn_model.state_dict(), './practice/myRNN/myRNN_generate.pt')
             # Load
             # loaded_model = MyRNN()
             # loaded_model.load_state_dict(torch.load('myRNN.pt'))
@@ -128,7 +153,6 @@ def main():
     writer.flush()
     # Call close() to save data of writer.
     writer.close()
-
     # Command line to visualize at localhost : tensorboard --logdir ./logs
 
     
