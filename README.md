@@ -1,6 +1,7 @@
 # SPTTC ( Studying Practice To Test Code )
 
-Python 관련 테스트 코드 및 Pytorch 모델 연습용 repository
+This repository is practice to use pytorch models or python test codes about deep learning, LLM, other frameworks, etc.
+(Python 관련 테스트 코드 및 Pytorch 모델 연습용 repository)
 
 
 ## Examples
