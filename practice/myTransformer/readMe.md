@@ -1,6 +1,8 @@
 
 
-## Self-Attention Implemetation
+## Attention All You Need
+
+![ Transformer structure ](./imgs/Transformer_structure.png)
 
 ### Self-Attention of Workflow Concept
 
@@ -46,7 +48,6 @@ Multi-head Attentioon 에 LayerNorm 및 Skip-connection 을 활용하여 Attenti
 Encoder는 Transformer Block을 N 배수 만큼 쌓아 학습이 잘 되도록 설계
 
 ![ Transformer encoder by hand](./imgs/Transformer_encoder_hand.png)
-![ Transformer structure ](./imgs/Transformer_structure.png)
 
 
 ## Transformer 개념 추가
