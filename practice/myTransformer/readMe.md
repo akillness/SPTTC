@@ -29,7 +29,7 @@ Self-Attention 을 통한 Input Embedding 의 Attention Weight를 정교하게 �
 
 Input 데이터는 Word를 순서에 맞춰 나열한 Sequence 이기 때문에, Input 데이터의 Word간 순서의 관계 정보 또한 중요한 부분이다.
 
-Tokenizer 는 수많은 Word 의 Lookup Table 형태로 Vector Embedding 된 Index 정보만을 통해 Input 데이터의 Word Embedding 의 값을 전달해 주지만, Input 데이터로 구성된 Input 데이터의 순서는 입력 순서에 따라 Matrix 저장되지만, Vector Embedding 값은 임의로 설정됨
+Tokenizer 는 수많은 Word 의 Lookup Table 형태로 Vector Embedding 된 Index 정보만을 통해 Input 데이터의 Word Embedding 의 값을 전달해 주지만, Input 데이터로 구성된 Input 데이터의 순서는 입력 순서에 따라 Matrix 저장 후, Vector Embedding 값은 임의로 설정됨
 
 Input 데이터의 Embedding 값을 설정해주는 방식
 - 학습기반 ( Backpropagtion 을 통한 업데이트 방식 )
