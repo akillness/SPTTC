@@ -1,34 +1,33 @@
+
 import torch
 import torch.nn as nn
+import myMultiHeadAttention
 
-embed_dim = 20
-attent_dim = 5
-
-# 요약 : 하나의 문장에서 단어들간의 관계를 파악하고, 단어의 Vector Representation을 update 하여 재배치 한다.
-# ㄴ 가능한 이유는 SelfAttention 방법론 
-class SelfAttention(nn.Module):
-    def __init__(self,embed_dim, attent_dim):
+class FeedForwrad(nn.Module):
+    def __init__(self, embed_dim, ff_dim):
         super().__init__()
-        
-        # self-attention의 query, key, value 를 linear(재배치) 하여 선언
-        self.query = torch.nn.Linear(embed_dim, attent_dim)
-        self.key = torch.nn.Linear(embed_dim, attent_dim)
-        self.value = torch.nn.Linear(embed_dim, attent_dim)
-        # step.1 ) q*k^T = score matrix 
-        # step.2 ) query 의 element 와 관련된 key element 간의 관계(Attention) 에 따라 high score 또는 low score
-        # step.3 ) score matrix 를 row의 방향으로 softmax ( row의 총합을 1로 만들기 위함 )
-        # step.4 ) softmax 적용된 q*k^T matrix 에 value 를 합성곱하여 word 마다의 vector representation 이 값을 갖게됨
-        # tip ) 1/dk^(1/2) 의 값은 Attention(Q,K,V) 의 값이 극단적이지 않도록 smoothing 하는 역할 값
-    
+
+        # Feedforward 개념 구현
+        self.net = nn.Sequential(
+            nn.Linear(embed_dim,ff_dim),
+            nn.ReLU(),
+            nn.Linear(ff_dim,embed_dim)
+        )
+
     def forward(self,x):
-        q = self.query(x)
-        k = self.key(x)
-        v = self.value(x)
+        return self.net(x)
 
-        score = torch.matmul(q,k.transpose(-2,-1)) # step.1, 2
-        score = score / k.size(-1) ** 0.5 # smoothing
+class TransformBlock(nn.Module): 
+    def __init__(self, embed_dim, multi_heads):
+        super().__init__()
 
-        attention_weights = torch.nn.Softmax(score,dim=-1) # step.3
-        weight_values = torch.matmul(attention_weights,v) # step.4
+        self.layer_norm1 = nn.LayerNorm(embed_dim) # Layer Norm을 통해 scale, shift 학습
+        self.multihead_attenstion = myMultiHeadAttention.MultiHeadAttention(embed_dim,multi_heads)
 
-        return weight_values # SelfAttention(Q,K,V)
+        self.layer_norm2 = nn.LayerNorm(embed_dim)
+        self.feed_forward = FeedForwrad(embed_dim, 4*embed_dim)
+
+    def forward(self,x):
+        x = x + self.multihead_attenstion(self.layer_norm1(x))
+        x = x + self.feed_forward(self.layer_norm2(x))
+        return x
