@@ -8,10 +8,6 @@
 
 Self-Attention 은 Query, Key, Value 를 이용해, Input Embedding 내 Word 간의 관계를 Matrix Score 로 계산하여 관계가 높을수록 high score, 낮을 수록 low score를 파악 할 수 있다.
 
-- Query : 관계파악을 위한 Word 인지 제안하는 값
-- Key : Query 에 상응하는 Word 에 대한 값
-- Value : Q*K^T 로 얻은 Score 를 Probability로 변환하여 Attention weight로 바꿔주기 위한 값
-
 ### Self-Attention 
 
 Linear 하게, Q,K,V 를 이용해 Input Embedding의 Attention Weight를 학습을 통해 관련성을 찾아가는 개념
