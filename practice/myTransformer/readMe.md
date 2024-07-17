@@ -37,7 +37,7 @@ Input 데이터의 Embedding 값을 설정해주는 방식
 
 ### Transformer Encoder
 
-Multi-head Attentioon 에 LayerNorm 및 Skip-connection 을 활용하여 Attention 정보가 Vanishing 되지 않도록 Block 구조를 설계
+Multi-head Attention 에 LayerNorm 및 Skip-connection 을 활용하여 Attention 정보가 Vanishing 되지 않도록 Block 구조를 설계
 - 각 Multi-Head 의 개념을 가능하도록 LayerNorm 을 이용해, 학습시 각 Layer의 Distibution 의 Scale, Shift 를 학습 (평균과 분산은 Moving Average 로부터 얻음 )
   - 학습시 Vanishing Gradient가 발생하는 부분은 Feedforward 블록에서 ReLU 가 있기 때문임
 
