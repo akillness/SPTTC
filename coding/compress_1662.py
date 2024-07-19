@@ -7,6 +7,7 @@
 def main():
     seq = input().strip()
 
+    # 최적화 한 코드
     def solve(sequence):
         stack = []
         text = ''
