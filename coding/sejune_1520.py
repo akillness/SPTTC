@@ -29,6 +29,7 @@ def main():
                 dr_x, dr_y = x + dx[i], y + dy[i]
                 if check_condition(dr_x, dr_y, rows[y][x]):
                     dp[y][x] += go(dr_x, dr_y)
+                    print(dp)
         
         return dp[y][x]
             

@@ -1,6 +1,9 @@
 from collections import defaultdict, deque
 from heapq import heappush, heappop
 import sys
+
+
+# 최단경로를 찾고, 최단경로를 제거하고 다시 최단경로를 찾는 문제
 input = sys.stdin.readline
 MAX = float('inf')
 
