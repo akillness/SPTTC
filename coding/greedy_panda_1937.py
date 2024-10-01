@@ -10,8 +10,10 @@ a = [list(map(int, rdln().split())) for _ in range(n)]
 d = [[0]*n for _ in range(n)]
 
 def go(i, j):
+    
     if d[i][j] != 0: # 이미 방문한 값은 최적값이므로 그대로 반영
         return d[i][j]
+    
     d[i][j] = 1 # 시작한 위치 자체도 1개로 포함되므로, 최소값은 1이다.
     for k in range(4):
         y, x = i +dy[k], j+dx[k]
