@@ -1,10 +1,10 @@
 
 # << Vision Transformer 기반의 오픈소스 프레임워크 모델
-## DETR 
-## Deformable DETR <
+## DETR : https://huggingface.co/facebook/detr-resnet-50
+## Deformable DETR < 
 ## YOLOS (You Only Look One-level Series) <
 
-# ㄴ 위의 두모델 성능 비교 논문 : https://openaccess.thecvf.com/content/CVPR2024/papers/Zhao_DETRs_Beat_YOLOs_on_Real-time_Object_Detection_CVPR_2024_paper.pdf
+# ㄴ 위의 두 모델(RT-DETR vs YOLOS) 성능 비교 논문 : https://openaccess.thecvf.com/content/CVPR2024/papers/Zhao_DETRs_Beat_YOLOs_on_Real-time_Object_Detection_CVPR_2024_paper.pdf
 
 import torch
 from transformers import DetrImageProcessor, DetrForObjectDetection
