@@ -1,0 +1,104 @@
+import socket
+import multiprocessing
+import torch
+from deepseek_r1 import deepseek_r1, device
+
+def handle_client(client_socket, client_address, deepbot):
+    """클라이언트 요청 처리 핸들러"""
+    print(f"클라이언트 {client_address} 연결")
+    
+    try:
+        while True:
+            message = client_socket.recv(4096).decode('utf-8')
+            if not message:
+                break
+            print(f"[요청] {client_address}: {message[:50]}...")
+            result = deepbot.generate(message)
+            response = f"서버 응답: {result}"
+            client_socket.send(response.encode('utf-8'))
+    except Exception as e:
+        print(f"처리 오류: {e}")
+    finally:
+        client_socket.close()
+        print(f"연결 종료: {client_address}")
+
+def worker_process(server_socket, deepbot):
+    """워커 프로세스 메인 로직"""
+    try:
+        while True:
+            client_sock, addr = server_socket.accept()
+            handle_client(client_sock, addr, deepbot)
+            
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"워커 오류: {e}")
+    finally:
+        # 자원 정리
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+def start_server():
+    """서버 시작 함수"""
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(('localhost', 9999))
+    server.listen()
+
+    # 모델 초기화 (한 번만 로드하여 모든 프로세스에서 공유)
+    model = deepseek_r1(
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        cached_dir='./',
+        device=device
+    )
+    
+    # CPU 코어 수 기반 워커 풀 생성
+    # num_workers = multiprocessing.cpu_count() // 4  # I/O 바운드 작업 가정
+    num_workers = 1
+    workers = []
+    
+    try:
+        # 워커 프로세스 생성
+        for _ in range(num_workers):
+            p = multiprocessing.Process(
+                target=worker_process,
+                args=(server, model)  # server와 model을 각각 넘겨준다.
+            )
+            p.start()
+            workers.append(p)
+        
+        print(f"서버 시작 (워커 수: {num_workers})")
+        while True:
+            # 메인 프로세스는 관리자 역할만 수행
+            for p in workers:
+                if not p.is_alive():
+                    print("워커 재시작 중...")
+                    p.join()
+                    new_p = multiprocessing.Process(
+                        target=worker_process,
+                        args=(server, model)
+                    )
+                    new_p.start()
+                    workers.remove(p)
+                    workers.append(new_p)
+            multiprocessing.active_children()  # 좀비 프로세스 정리
+            
+    except KeyboardInterrupt:
+        print("\n서버 종료 신호 수신")
+    finally:
+        # 자원 정리
+        for p in workers:
+            if p.is_alive():
+                p.terminate()
+        server.close()
+        print("서버 정상 종료")
+
+if __name__ == '__main__':
+    try:
+        start_server()
+    except Exception as e:
+        print(f"서버 오류: {e}")
+    finally:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        print("시스템 정리 완료")

@@ -2,11 +2,10 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, EncoderDecoderModel, DynamicCache
 
-import line_profiler
+#import line_profiler
 # ㄴ 사용 방법 : kernprof -l -v test.py 
     
 import timeit
-
 
 # 디바이스 설정 (GPU가 사용 가능하면 GPU, 아니면 CPU)
 if torch.cuda.is_available():
@@ -24,7 +23,6 @@ def timeit_decorator(func):
         return result
     return wrapper
 
-
 class deepseek_r1():
     @timeit_decorator
     def __init__(self, model_name, cached_dir, device):
@@ -32,7 +30,6 @@ class deepseek_r1():
         config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
         config.sliding_window = None  # config 수정 추가 - sdpa 실행안된다는 오류
         
-       
         '''
         if device == "cpu":
             # 양자화 설정 제거
@@ -122,10 +119,10 @@ def main():
     # 원하는 캐시 디렉토리 경로
     custom_cache_dir = './'
 
-    model = deepseek_r1(model_name=model_name,cached_dir=custom_cache_dir,device=device)
+    # model = deepseek_r1(model_name=model_name,cached_dir=custom_cache_dir,device=device)
 
-    input_text = "Deepseek r1 의 장점에 대해 설명해줘"
-    print(model.generate(input_text))
+    # input_text = "Deepseek r1 의 장점에 대해 설명해줘"
+    # print(model.generate(input_text))
     '''
     from transformers import EncoderDecoderModel, BertTokenizer, GPT2Tokenizer
 
