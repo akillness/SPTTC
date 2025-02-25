@@ -1,0 +1,162 @@
+
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, EncoderDecoderModel, DynamicCache
+
+import line_profiler
+# ㄴ 사용 방법 : kernprof -l -v test.py 
+    
+import timeit
+
+
+# 디바이스 설정 (GPU가 사용 가능하면 GPU, 아니면 CPU)
+if torch.cuda.is_available():
+    device = "cuda"
+else:
+    device = "cpu"
+
+def timeit_decorator(func):
+    def wrapper(*args, **kwargs):
+        start_time = timeit.default_timer()
+        result = func(*args, **kwargs)
+        end_time = timeit.default_timer()
+        execution_time = end_time - start_time
+        print(f"{func.__name__} 실행 시간: {execution_time}초")
+        return result
+    return wrapper
+
+
+class deepseek_r1():
+    @timeit_decorator
+    def __init__(self, model_name, cached_dir, device):
+        # 설정 로드
+        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+        config.sliding_window = None  # config 수정 추가 - sdpa 실행안된다는 오류
+        
+       
+        '''
+        if device == "cpu":
+            # 양자화 설정 제거
+            if hasattr(config, "quantization_config"):
+                delattr(config, "quantization_config")
+        '''
+        # 모델 및 토크나이저 로드
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name, 
+            cache_dir=cached_dir,
+            config=config, 
+            trust_remote_code=True,            
+            attn_implementation="eager",
+            low_cpu_mem_usage=True,
+            # attn_implementation="flash_attention_2",  # 또는 "eager", use_sdpa=False
+            # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가
+            # device_map="auto",              # 메모리 자동 할당
+            torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
+            )
+        
+        # RoPE 확장 적용 (Rotary Position Embedding)
+        self.model.config.rope_scaling = {
+            "type": "dynamic", 
+            "factor": 1.5
+        }
+        
+        # decoder 모델 로드시 사용
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cached_dir, trust_remote_code=True)
+        # 패딩 토큰 명시적 설정 추가
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token  # 1번 방법 적용
+            '''
+            self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})  # 새 패딩 토큰 추가
+            self.model.resize_token_embeddings(len(self.tokenizer))  # 모델 임베딩 레이어 조정
+            '''
+        
+        # generation config 추가 (클래스 __init__에 추가)
+        # self.model.generation_config.max_length = 5000 # 최대 길이 변경
+        # self.model.generation_config.max_new_tokens = 4800 # 새로운 토큰 생성 제한 (선택사항)
+        # self.model.generation_config.pad_token_id = self.tokenizer.eos_token_id
+            
+        self.device = torch.device(device)
+    
+    def cleanup(self):
+        """모델 리소스 명시적 해제"""
+        if hasattr(self, 'model'):
+            del self.model
+        if hasattr(self, 'tokenizer'):
+            del self.tokenizer
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        print("모델 리소스가 성공적으로 해제되었습니다")
+        
+    @timeit_decorator
+    def generate(self,input_text):
+        # 입력을 토큰화하고 텐서로 변환
+        # device = torch.device(device)
+        inputs = self.tokenizer(input_text, return_tensors="pt").to(self.device)
+
+        # 모델을 사용하여 출력 생성
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+
+                # do_sample=True,  # 샘플링 활성화
+                # top_k=50,        # 메모리 사용량 감소
+                # top_p=0.95,      # 효율적인 탐색
+                # temperature=0.6,  # 출력 다양성 조절
+                # max_length=3000,  # 최대 길이 변경
+                max_new_tokens=2800,  # 새로운 토큰 생성 제한 (선택사항)
+                use_cache=True,          # 캐시 사용으로 성능 향상
+                repetition_penalty=1.1,  # 반복 생성 방지
+                num_beams=1,              # 빔 서치 비활성화 (메모리 절약)
+                pad_token_id=self.tokenizer.eos_token_id  # 패딩 토큰 명시적 지정
+            )
+
+        # 출력된 토큰을 문자열로 변환하여 결과 출력
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return response
+    
+
+def main():
+    
+    # 모델 이름
+    # model_name = "deepseek-ai/DeepSeek-R1"
+    model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    # 원하는 캐시 디렉토리 경로
+    custom_cache_dir = './'
+
+    model = deepseek_r1(model_name=model_name,cached_dir=custom_cache_dir,device=device)
+
+    input_text = "Deepseek r1 의 장점에 대해 설명해줘"
+    print(model.generate(input_text))
+    '''
+    from transformers import EncoderDecoderModel, BertTokenizer, GPT2Tokenizer
+
+    # 인코더와 디코더의 토크나이저 로드
+    encoder_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    decoder_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
+    # 인코더-디코더 모델 로드
+    model = EncoderDecoderModel.from_encoder_decoder_pretrained("bert-base-uncased", "gpt2")
+
+    # 입력 시퀀스
+    input_text = "Hugging Face는 훌륭한 NLP 라이브러리를 제공합니다."
+    input_ids = encoder_tokenizer(input_text, return_tensors="pt").input_ids
+
+    # 인코더를 통해 입력을 인코딩하여 잠재 변수 z 획득
+    encoder_outputs = model.encoder(input_ids)
+    latent_z = encoder_outputs.last_hidden_state
+
+    # 디코더 입력 준비 (예: 시작 토큰)
+    decoder_input_ids = decoder_tokenizer("<|startoftext|>", return_tensors="pt").input_ids
+
+    # 디코더를 통해 출력 생성
+    outputs = model(input_ids=input_ids, decoder_input_ids=decoder_input_ids)
+
+    # 생성된 텍스트 디코딩
+    generated_text = decoder_tokenizer.decode(outputs.logits.argmax(-1).squeeze(), skip_special_tokens=True)
+    print(generated_text)
+    '''
+
+# 프로파일러 실행
+if __name__ == '__main__':
+    main()
+    
+    
