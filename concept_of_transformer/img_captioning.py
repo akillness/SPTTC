@@ -4,10 +4,10 @@ import requests
 from PIL import Image
 from io import BytesIO
 
-from huggingface_hub import login
+# from huggingface_hub import login
 
-# 생성한 액세스 토큰을 입력합니다.
-login(token="")
+# # 생성한 액세스 토큰을 입력합니다.
+# login(token="")
 
 
 # 원하는 캐시 디렉토리 경로
