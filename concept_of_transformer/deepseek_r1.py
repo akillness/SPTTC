@@ -4,8 +4,22 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, Encode
 
 #import line_profiler
 # ㄴ 사용 방법 : kernprof -l -v test.py 
-    
 import timeit
+
+from memory_profiler import profile
+
+import platform
+
+os_name = platform.system()
+
+if os_name == "Darwin":
+    print("This is macOS.")
+elif os_name == "Windows":
+    print("This is Windows.")
+else:
+    print("This is another OS:", os_name)
+    
+# import cProfile
 
 # 디바이스 설정 (GPU가 사용 가능하면 GPU, 아니면 CPU)
 if torch.cuda.is_available():
@@ -16,14 +30,17 @@ else:
 def timeit_decorator(func):
     def wrapper(*args, **kwargs):
         start_time = timeit.default_timer()
+        # with cProfile.Profile() as pr:
         result = func(*args, **kwargs)
         end_time = timeit.default_timer()
         execution_time = end_time - start_time
         print(f"{func.__name__} 실행 시간: {execution_time}초")
+        # pr.print_stats()
         return result
     return wrapper
 
 class deepseek_r1():
+    # @profile
     @timeit_decorator
     def __init__(self, model_name, cached_dir, device):
         # 설정 로드
@@ -36,19 +53,37 @@ class deepseek_r1():
             if hasattr(config, "quantization_config"):
                 delattr(config, "quantization_config")
         '''
-        # 모델 및 토크나이저 로드
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, 
-            cache_dir=cached_dir,
-            config=config, 
-            trust_remote_code=True,            
-            attn_implementation="eager",
-            low_cpu_mem_usage=True,
-            # attn_implementation="flash_attention_2",  # 또는 "eager", use_sdpa=False
-            # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가
-            # device_map="auto",              # 메모리 자동 할당
-            torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
-            )
+        if os_name == "Darwin":
+             # 모델 및 토크나이저 로드
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name, 
+                cache_dir=cached_dir,
+                config=config, 
+                trust_remote_code=True,
+                # load_in_4bit=True,            
+                attn_implementation="eager",
+                low_cpu_mem_usage=True,
+                # attn_implementation="flash_attention_2",  # 또는 "eager", use_sdpa=False
+                # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가
+                # device_map="auto",              # 메모리 자동 할당
+                torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
+                )
+        elif os_name == "Windows":            
+             # 모델 및 토크나이저 로드
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name, 
+                cache_dir=cached_dir,
+                config=config, 
+                trust_remote_code=True,
+                load_in_4bit=True,            
+                
+                low_cpu_mem_usage=True,
+                attn_implementation="flash_attention_2",  # 또는 "eager", use_sdpa=False
+                # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가
+                # device_map="auto",              # 메모리 자동 할당
+                torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
+                )
+    
         
         # RoPE 확장 적용 (Rotary Position Embedding)
         self.model.config.rope_scaling = {
@@ -65,11 +100,6 @@ class deepseek_r1():
             self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})  # 새 패딩 토큰 추가
             self.model.resize_token_embeddings(len(self.tokenizer))  # 모델 임베딩 레이어 조정
             '''
-        
-        # generation config 추가 (클래스 __init__에 추가)
-        # self.model.generation_config.max_length = 5000 # 최대 길이 변경
-        # self.model.generation_config.max_new_tokens = 4800 # 새로운 토큰 생성 제한 (선택사항)
-        # self.model.generation_config.pad_token_id = self.tokenizer.eos_token_id
             
         self.device = torch.device(device)
     
@@ -91,9 +121,9 @@ class deepseek_r1():
 
         # 모델을 사용하여 출력 생성
         with torch.no_grad():
+            # with cProfile.Profile() as pr:
             outputs = self.model.generate(
                 **inputs,
-
                 # do_sample=True,  # 샘플링 활성화
                 # top_k=50,        # 메모리 사용량 감소
                 # top_p=0.95,      # 효율적인 탐색
@@ -104,8 +134,8 @@ class deepseek_r1():
                 repetition_penalty=1.1,  # 반복 생성 방지
                 num_beams=1,              # 빔 서치 비활성화 (메모리 절약)
                 pad_token_id=self.tokenizer.eos_token_id  # 패딩 토큰 명시적 지정
-            )
-
+            )            
+        # pr.print_stats()
         # 출력된 토큰을 문자열로 변환하여 결과 출력
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
