@@ -10,24 +10,6 @@ pympler: 객체 메모리 사용량 정확 측정
 import os, psutil
 # from pympler import asizeof
 
-
-def get_available_memory():
-    # 시스템의 가용 메모리(GB)를 반환합니다.
-    memory = psutil.virtual_memory()
-    return memory.available / (1024 ** 3)  # GB 단위로 반환
-
-def get_process_memory_usage():
-    # 현재 프로세스의 메모리 사용량(GB)을 반환합니다.
-    process = psutil.Process(os.getpid())
-    memory_info = process.memory_info()
-    return memory_info.rss / (1024 ** 3)  # GB 단위로 반환
-
-def calculate_max_workers(model_memory_usage):
-    """시스템의 가용 메모리와 모델의 메모리 사용량을 고려하여 최대 워커 수를 계산합니다."""
-    available_memory = get_available_memory()
-    max_workers = int(available_memory // model_memory_usage)
-    return max_workers
-
 def handle_client(client_socket, client_address, deepbot):
     """클라이언트 요청 처리 핸들러"""
     print(f"클라이언트 {client_address} 연결")
@@ -79,11 +61,9 @@ def start_server():
 
     # CPU 코어 수 기반 워커 풀 생성
     # num_workers = multiprocessing.cpu_count()   # I/O 바운드 작업 가정
-    
     # 모델의 메모리 사용량 (GB)
-    model_memory_usage = 3.6  # 예: 3.5GB
-    
-    num_workers = calculate_max_workers(model_memory_usage)
+
+    num_workers = model.get_usable_process_num()    
     workers = []
     
     try:

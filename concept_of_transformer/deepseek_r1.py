@@ -2,16 +2,15 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, EncoderDecoderModel, DynamicCache
 
+import timeit
+import os, psutil
+# from memory_profiler import profile
+# import cProfile
 #import line_profiler
 # ㄴ 사용 방법 : kernprof -l -v test.py 
-import timeit
-
-from memory_profiler import profile
-
 import platform
 
 os_name = platform.system()
-
 if os_name == "Darwin":
     print("This is macOS.")
 elif os_name == "Windows":
@@ -19,7 +18,6 @@ elif os_name == "Windows":
 else:
     print("This is another OS:", os_name)
     
-# import cProfile
 
 # 디바이스 설정 (GPU가 사용 가능하면 GPU, 아니면 CPU)
 if torch.cuda.is_available():
@@ -140,6 +138,44 @@ class deepseek_r1():
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
     
+    def get_usable_process_num(self):
+        process_num = -1
+        self.print_memory_usage()
+        if torch.cuda.is_available():
+            allocated, max_allocated, reserve = self.get_gpu_memory()
+            process_num = int(max_allocated / allocated)
+        else:  
+            process_num = int(self.get_available_memory() / self.get_cpu_memory())                
+        return process_num
+    
+    def get_available_memory(self):
+        # 시스템의 가용 메모리(GB)를 반환합니다.
+        memory = psutil.virtual_memory()
+        return memory.available / (1024 ** 3)  # GB 단위로 반환
+    
+    def get_cpu_memory(self):
+        """현재 프로세스의 CPU 메모리 사용량(MB 단위) 반환"""
+        mem_info = self.model.get_memory_footprint()
+        return mem_info / (1024 ** 3)  # Bytes -> GB 변환
+
+    def get_gpu_memory(self,device="cuda"):
+        """GPU 메모리 사용량(MB 단위) 반환"""        
+        allocated = torch.cuda.memory_allocated(device) / (1024 ** 3)  # 할당된 메모리
+        max_allocated = torch.cuda.max_memory_allocated(device) / (1024 ** 3)  # 최대 할당된 메모리
+        reserved = torch.cuda.memory_reserved(device) / (1024 ** 3)  # 예약된 메모리
+        return allocated, max_allocated, reserved
+    
+    def print_memory_usage(self):
+        """현재 CPU 및 GPU 메모리 사용량 출력"""
+        cpu_mem = self.get_cpu_memory()
+        print(f"CPU Memory Usage: {cpu_mem:.2f} GB")
+
+        if torch.cuda.is_available():
+            allocated, max_allocated, reserved = self.get_gpu_memory()
+            print(f"GPU Memory Usage: {allocated:.2f} GB (Allocated), {max_allocated:.2f} GB (Max), {reserved:.2f} GB (Reserved)")
+        else:
+            print("No GPU available.")
+
 
 def main():
     
