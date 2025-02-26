@@ -12,22 +12,22 @@ import os, psutil
 
 def handle_client(client_socket, client_address, deepbot):
     """클라이언트 요청 처리 핸들러"""
-    print(f"클라이언트 {client_address} 연결")
+    print(f"Connected client : {client_address}")
     
     try:
         while True:
             message = client_socket.recv(4096).decode('utf-8')
             if not message:
                 break
-            print(f"[요청] {client_address}: {message[:50]}...")
+            print(f"[Query] {client_address}: {message}...")
             result = deepbot.generate(message)
-            response = f"서버 응답: {result}"
+            response = f"Server response: {result}"
             client_socket.send(response.encode('utf-8'))
     except Exception as e:
-        print(f"처리 오류: {e}")
+        print(f"Handle error: {e}")
     finally:
         client_socket.close()
-        print(f"연결 종료: {client_address}")
+        print(f"Disconneted: {client_address}")
 
 def worker_process(server_socket, deepbot):
     """워커 프로세스 메인 로직"""
@@ -39,7 +39,7 @@ def worker_process(server_socket, deepbot):
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        print(f"워커 오류: {e}")
+        print(f"Worker error: {e}")
     finally:
         # 자원 정리
         if torch.cuda.is_available():
@@ -76,12 +76,12 @@ def start_server():
             p.start()
             workers.append(p)
         
-        print(f"서버 시작 (워커 수: {num_workers})")
+        print(f"Starting server (Worker num: {num_workers})")
         while True:
             # 메인 프로세스는 관리자 역할만 수행
             for p in workers:
                 if not p.is_alive():
-                    print("워커 재시작 중...")
+                    print("Restarting workers...")
                     p.join()
                     new_p = multiprocessing.Process(
                         target=worker_process,
@@ -93,21 +93,21 @@ def start_server():
             multiprocessing.active_children()  # 좀비 프로세스 정리
             
     except KeyboardInterrupt:
-        print("\n서버 종료 신호 수신")
+        print("\nAccepted signal to quit")
     finally:
         # 자원 정리
         for p in workers:
             if p.is_alive():
                 p.terminate()
         server.close()
-        print("서버 정상 종료")
+        print("Quit server completed")
 
 if __name__ == '__main__':
     try:
         start_server()
     except Exception as e:
-        print(f"서버 오류: {e}")
+        print(f"Server error: {e}")
     finally:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        print("시스템 정리 완료")
+        print("Cleaned server system")

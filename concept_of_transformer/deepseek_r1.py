@@ -32,7 +32,7 @@ def timeit_decorator(func):
         result = func(*args, **kwargs)
         end_time = timeit.default_timer()
         execution_time = end_time - start_time
-        print(f"{func.__name__} 실행 시간: {execution_time}초")
+        print(f"실행 시간 : {execution_time:.4}초, func : {func.__name__} ")
         # pr.print_stats()
         return result
     return wrapper
@@ -175,7 +175,6 @@ class deepseek_r1():
             print(f"GPU Memory Usage: {allocated:.2f} GB (Allocated), {max_allocated:.2f} GB (Max), {reserved:.2f} GB (Reserved)")
         else:
             print("No GPU available.")
-
 
 def main():
     
