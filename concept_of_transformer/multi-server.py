@@ -3,12 +3,7 @@ import multiprocessing
 import torch
 from deepseek_r1 import deepseek_r1, device
 
-'''
-psutil: 시스템 메모리 정보 조회
-pympler: 객체 메모리 사용량 정확 측정
-'''
-import os, psutil
-# from pympler import asizeof
+
 
 def handle_client(client_socket, client_address, deepbot):
     """클라이언트 요청 처리 핸들러"""

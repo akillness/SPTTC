@@ -3,7 +3,12 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, EncoderDecoderModel, DynamicCache
 
 import timeit
+'''
+psutil: 시스템 메모리 정보 조회
+pympler: 객체 메모리 사용량 정확 측정
+'''
 import os, psutil
+
 # from memory_profiler import profile
 # import cProfile
 #import line_profiler
@@ -154,12 +159,12 @@ class deepseek_r1():
         return memory.available / (1024 ** 3)  # GB 단위로 반환
     
     def get_cpu_memory(self):
-        """현재 프로세스의 CPU 메모리 사용량(MB 단위) 반환"""
+        """현재 프로세스의 CPU 메모리 사용량(GB 단위) 반환"""
         mem_info = self.model.get_memory_footprint()
         return mem_info / (1024 ** 3)  # Bytes -> GB 변환
 
     def get_gpu_memory(self,device="cuda"):
-        """GPU 메모리 사용량(MB 단위) 반환"""        
+        """GPU 메모리 사용량(GB 단위) 반환"""        
         allocated = torch.cuda.memory_allocated(device) / (1024 ** 3)  # 할당된 메모리
         max_allocated = torch.cuda.max_memory_allocated(device) / (1024 ** 3)  # 최대 할당된 메모리
         reserved = torch.cuda.memory_reserved(device) / (1024 ** 3)  # 예약된 메모리
