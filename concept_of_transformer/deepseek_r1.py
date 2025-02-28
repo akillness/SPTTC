@@ -78,15 +78,39 @@ class deepseek_r1():
                 cache_dir=cached_dir,
                 config=config, 
                 trust_remote_code=True,
-                load_in_4bit=True,            
-                
                 low_cpu_mem_usage=True,
-                attn_implementation="flash_attention_2",  # 또는 "eager", use_sdpa=False
+                #attn_implementation="flash_attention_2",  # 또는 "eager", use_sdpa=False
                 # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가
-                # device_map="auto",              # 메모리 자동 할당
                 torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
                 )
-    
+        elif os_name == "Linux":
+            from transformers import BitsAndBytesConfig
+            
+            # 1. 양자화 설정 객체 생성
+            '''
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,  # 8비트는 load_in_8bit=True
+                bnb_4bit_quant_type="nf4",       # 양자화 알고리즘 타입 (nf4/fp4)
+                bnb_4bit_compute_dtype=torch.float16, # torch.bfloat16 (A100, H100 등)  # 계산 dtype
+                bnb_4bit_use_double_quant=True  # 이중 양자화 여부
+            )
+            '''
+            quantization_config = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_threshold=6.0,  # 8비트 변환 임계값
+                llm_int8_enable_fp32_cpu_offload=True
+            )
+
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name, 
+                cache_dir=cached_dir,
+                config=config, 
+                quantization_config=quantization_config,
+                attn_implementation="eager",
+                # attn_implementation="flash_attention_2" 해당 방식은 Linux 적합,  # 또는 "eager", cuda 11.7 이상버전에서만 가능 
+                # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가                
+                device_map="auto",              # 메모리 자동 할당                
+                )
         
         # RoPE 확장 적용 (Rotary Position Embedding)
         self.model.config.rope_scaling = {
