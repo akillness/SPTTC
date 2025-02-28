@@ -24,7 +24,14 @@ def worker_process():
         print(f"Connected client : {websocket.remote_address}")
         try:
             async for message in websocket:
+                print(f"Waiting Message..")
                 messagetojson = json.loads(message)
+                 # 'content' 키가 존재하는지 확인
+                content = messagetojson.get('content')
+                if content is None:
+                    print("Received message without 'content' key.")
+                    continue  # 'content' 키가 없으면 다음 메시지로 넘어감
+                
                 # 비동기 실행을 위해 이벤트 루프에서 실행
                 loop = asyncio.get_event_loop()
                 print(messagetojson)
@@ -34,12 +41,13 @@ def worker_process():
                     model.generate,  # 모델 추론 메서드
                     messagetojson['content']       # 입력 메시지
                 )
-                # print(f"[Server] response: {response}")
+                print(f"[Server] response: {response}")
+                
                 # Update Message 
                 messagetojson['content'] = response
                 messagetojson['isMe'] = False
                 messagetojson['timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-                
+            
                 result = json.dumps(messagetojson)
                 await websocket.send(result)
                 
