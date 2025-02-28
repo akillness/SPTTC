@@ -1,0 +1,118 @@
+
+import asyncio
+import websockets
+import time
+from datetime import datetime
+import multiprocessing
+import torch
+
+import json
+
+from deepseek_r1 import deepseek_r1, device
+
+def worker_process():
+    """웹소켓 요청을 처리하는 워커 프로세스"""
+    # 프로세스별 모델 로드
+    model = deepseek_r1(
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        cached_dir='./',
+        device=device
+    )
+
+    async def handler(websocket):
+        '''클라이언트의 웹소켓 연결을 처리하는 핸들러'''
+        print(f"Connected client : {websocket.remote_address}")
+        try:
+            async for message in websocket:
+                messagetojson = json.loads(message)
+                # 비동기 실행을 위해 이벤트 루프에서 실행
+                loop = asyncio.get_event_loop()
+                print(messagetojson)
+                print(f"[Query] : {messagetojson['content']}")
+                response = await loop.run_in_executor(
+                    None,  # 기본 Executor 사용 (ThreadPool)
+                    model.generate,  # 모델 추론 메서드
+                    messagetojson['content']       # 입력 메시지
+                )
+                # print(f"[Server] response: {response}")
+                # Update Message 
+                messagetojson['content'] = response
+                messagetojson['isMe'] = False
+                messagetojson['timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+                
+                result = json.dumps(messagetojson)
+                await websocket.send(result)
+                
+        except websockets.exceptions.ConnectionClosedOK:
+            print(f"클라이언트 {websocket.remote_address} 정상적으로 연결 종료")
+        except Exception as e:
+            print(f"웹소켓 에러: {e}")
+        finally:
+            print(f"클라이언트 {websocket.remote_address} 연결 해제됨")
+
+    async def main():
+        # SO_REUSEADDR 및 reuse_port 설정으로 다중 바인딩 허용
+        async with websockets.serve(
+            handler,
+            "localhost",
+            9999,
+            reuse_port=True,
+            ping_interval=None
+        ):
+            await asyncio.Future()  # 무한 실행
+
+    asyncio.run(main())
+
+def start_server():
+    """서버 시작 함수"""
+    # 메인 프로세스에서 워커 수 결정을 위한 임시 모델 로드
+    temp_model = deepseek_r1(
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        cached_dir='./',
+        device=device
+    )
+    num_workers = temp_model.get_usable_process_num()
+    temp_model.cleanup()  # 임시 모델 메모리 해제
+
+    workers = []
+    
+    try:
+        # 워커 프로세스 생성
+        for _ in range(num_workers):
+            p = multiprocessing.Process(target=worker_process)
+            p.start()
+            workers.append(p)
+        
+        print(f"🚀 WebSocket server started on ws://localhost:9999 (Workers: {num_workers})")
+        print("🔌 Ctrl+C to stop the server")
+        
+        # 워커 모니터링 루프
+        while True:
+            for p in workers:
+                if not p.is_alive():
+                    print(f"⚠️ Worker {p.pid} died, restarting...")
+                    p.join()
+                    new_p = multiprocessing.Process(target=worker_process)
+                    new_p.start()
+                    workers.remove(p)
+                    workers.append(new_p)
+            time.sleep(1)  # CPU 부하 조절
+
+    except KeyboardInterrupt:
+        print("\n🛑 Received shutdown signal")
+    finally:
+        # 자원 정리
+        for p in workers:
+            if p.is_alive():
+                p.terminate()
+        print("✅ Server shutdown completed")
+
+if __name__ == '__main__':
+    try:
+        start_server()
+    except Exception as e:
+        print(f"❌ Critical server error: {e}")
+    finally:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        print("🧹 Cleaned up GPU resources")
