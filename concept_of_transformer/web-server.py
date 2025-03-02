@@ -3,7 +3,7 @@ import asyncio
 import websockets
 import time
 from datetime import datetime
-import multiprocessing
+import torch.multiprocessing as mp
 import torch
 
 import json
@@ -18,7 +18,7 @@ def worker_process():
         cached_dir='./',
         device=device
     )
-
+    print('Worker is available state')
     async def handler(websocket):
         '''클라이언트의 웹소켓 연결을 처리하는 핸들러'''
         print(f"Connected client : {websocket.remote_address}")
@@ -62,10 +62,11 @@ def worker_process():
         # SO_REUSEADDR 및 reuse_port 설정으로 다중 바인딩 허용
         async with websockets.serve(
             handler,
-            "localhost",
-            9999,
+            "0.0.0.0",          
+            # "localhost",  
+            8080,
             reuse_port=True,
-            ping_interval=None
+            # ping_interval=None
         ):
             await asyncio.Future()  # 무한 실행
 
@@ -87,11 +88,11 @@ def start_server():
     try:
         # 워커 프로세스 생성
         for _ in range(num_workers):
-            p = multiprocessing.Process(target=worker_process)
+            p = mp.Process(target=worker_process)
             p.start()
             workers.append(p)
         
-        print(f"🚀 WebSocket server started on ws://localhost:9999 (Workers: {num_workers})")
+        print(f"🚀 WebSocket server started on ws://localhost:8080 (Workers: {num_workers})")
         print("🔌 Ctrl+C to stop the server")
         
         # 워커 모니터링 루프
@@ -100,11 +101,11 @@ def start_server():
                 if not p.is_alive():
                     print(f"⚠️ Worker {p.pid} died, restarting...")
                     p.join()
-                    new_p = multiprocessing.Process(target=worker_process)
+                    new_p = mp.Process(target=worker_process)
                     new_p.start()
                     workers.remove(p)
                     workers.append(new_p)
-            time.sleep(1)  # CPU 부하 조절
+            # time.sleep(1)  # CPU 부하 조절
 
     except KeyboardInterrupt:
         print("\n🛑 Received shutdown signal")
@@ -116,6 +117,10 @@ def start_server():
         print("✅ Server shutdown completed")
 
 if __name__ == '__main__':
+    # 시작 방법 설정 (최초 1회만)
+    if mp.get_start_method(allow_none=True) is None:
+        mp.set_start_method("spawn")
+        
     try:
         start_server()
     except Exception as e:

@@ -1,8 +1,8 @@
 import socket
-import multiprocessing
+import torch.multiprocessing as mp
 
 import torch
-from deepseek_r1 import deepseek_r1, device
+from deepseek_r1 import deepseek_r1, device, os_name
 
 def handle_client(client_socket, client_address, deepbot):
     print(f"클라이언트 {client_address}와 연결되었습니다.")
@@ -30,7 +30,7 @@ def start_server(bot):
     try:
         while True:
             client_socket, client_address = server.accept()
-            process = multiprocessing.Process(target=handle_client, args=(client_socket, client_address, bot))
+            process = mp.Process(target=handle_client, args=(client_socket, client_address, bot))
             process.start()
     except KeyboardInterrupt:
         print("\n서버 종료 요청 수신")
@@ -39,6 +39,9 @@ def start_server(bot):
         print("서버 소켓이 닫혔습니다")
 
 if __name__ == '__main__':
+    # 시작 방법 설정 (최초 1회만)
+    if mp.get_start_method(allow_none=True) is None:
+        mp.set_start_method("spawn")
     # 모델 이름
     model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
     cached_dir = './'
