@@ -1,3 +1,11 @@
+## DeepSeek R1 1.5B Local Test
+
+> [!IMPORTANT] 
+> Description : DeepSeek R1 distill qwen 1.5B Model, Local Web Socket Server 
+> - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/web-server.py
+
+<img src="imgs/chatbot_system_for_readme.png">
+
 ## Pipelines Methods
 
 > [!IMPORTANT] 

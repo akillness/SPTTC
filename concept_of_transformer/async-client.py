@@ -16,7 +16,7 @@ def receive_response(client_socket):
 def start_client():
     """클라이언트 시작 함수"""
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('localhost', 9999))
+    client_socket.connect(('localhost', 8080))
 
     # 서버로부터의 응답을 수신하는 프로세스 시작
     receive_process = multiprocessing.Process(target=receive_response, args=(client_socket,))

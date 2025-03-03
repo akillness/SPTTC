@@ -10,14 +10,14 @@ import json
 
 from deepseek_r1 import deepseek_r1, device
 
-def worker_process():
+def worker_process(model):
     """웹소켓 요청을 처리하는 워커 프로세스"""
     # 프로세스별 모델 로드
-    model = deepseek_r1(
-        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-        cached_dir='./',
-        device=device
-    )
+    # model = deepseek_r1(
+    #     model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    #     cached_dir='./',
+    #     device=device
+    # )
     print('Worker is available state')
     async def handler(websocket):
         '''클라이언트의 웹소켓 연결을 처리하는 핸들러'''
@@ -62,11 +62,11 @@ def worker_process():
         # SO_REUSEADDR 및 reuse_port 설정으로 다중 바인딩 허용
         async with websockets.serve(
             handler,
-            "0.0.0.0",          
-            # "localhost",  
+            # "0.0.0.0",          
+            "localhost",  
             8080,
             reuse_port=True,
-            # ping_interval=None
+            ping_interval=None
         ):
             await asyncio.Future()  # 무한 실행
 
@@ -75,20 +75,20 @@ def worker_process():
 def start_server():
     """서버 시작 함수"""
     # 메인 프로세스에서 워커 수 결정을 위한 임시 모델 로드
-    temp_model = deepseek_r1(
+    model = deepseek_r1(
         model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
         cached_dir='./',
         device=device
     )
-    num_workers = temp_model.get_usable_process_num()
-    temp_model.cleanup()  # 임시 모델 메모리 해제
+    num_workers = model.get_usable_process_num()
+    # model.cleanup()  # 임시 모델 메모리 해제
 
     workers = []
     
     try:
         # 워커 프로세스 생성
         for _ in range(num_workers):
-            p = mp.Process(target=worker_process)
+            p = mp.Process(target=worker_process,args={model})
             p.start()
             workers.append(p)
         
@@ -114,6 +114,7 @@ def start_server():
         for p in workers:
             if p.is_alive():
                 p.terminate()
+        model.cleanup()
         print("✅ Server shutdown completed")
 
 if __name__ == '__main__':
