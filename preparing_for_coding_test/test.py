@@ -1,30 +1,22 @@
 
 
-# 0,1,2
-# edge : [0,1], [1,2], [0,1]
-
-def main():
-    edges =[[0,1], [1,2], [0,1]]
-
-    n = []
-
-    for e in edges:
-        for t in e:
-            if t not in n:
-                n.append(t)
-    # cols(w), rows(h)
-    view = [[0 for _ in range(len(n))] for _ in range(len(edges))]
-    print(view)
-    for y,e in enumerate(edges):
-    
-        view[y][e[0]] = 1
-        view[y][e[1]] = 1
-        
-        print(view)
-
-    print(view)
+# filter 와 join 이용한 문자열 제거
+def solution(str_list, ex):
+    return ''.join(filter(lambda x: ex not in x,str_list))
 
 
+# set 함수를 이용한, 중복판별
+a = 5
+b = 6
+c = 1
 
-if __name__ == "__main__":
-    main()
+print(list(set([a,b,c])))
+
+# set 함수를 이용한 교집합,합집합
+a = [1,2,3]
+b = [3,4,5]
+aib = list(set(a)&set(b))
+asb = list(set(a)|set(b))
+
+print(aib)
+print(asb)
