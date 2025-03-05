@@ -69,8 +69,8 @@ def generate_image_caption(image_path, max_length=30):
         attention_mask=attention_mask,
         max_length=max_length,
         num_beams=1,
-        temperature=0.1,
-        early_stopping=True,
+        # temperature=0.1,
+        # early_stopping=True,
         repetition_penalty=1.1,
         pad_token_id=tokenizer.eos_token_id
     )
