@@ -13,7 +13,7 @@ model = AutoModelForCausalLM.from_pretrained(
     cache_dir=cache_dir
 )
 
-# 2. CoT 프롬프트 (단계별 출력 유도)
+# 2. CoT 프롬프트 (단계별 출력 유도) <- Zero-shot Learning 
 prompt = input(r"질문해주세요 : ")
 cot_prompt = f"""<|system|>
 당신은 논리적 사고가 뛰어난 전문가입니다. 다음 단계로 답변하세요:
@@ -26,9 +26,6 @@ cot_prompt = f"""<|system|>
 </s>
 <|assistant|>
 """
-
-
-
 
 # 3. 실시간 스트리머 설정
 streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
