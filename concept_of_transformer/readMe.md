@@ -2,9 +2,17 @@
 
 > [!IMPORTANT] 
 > Description : DeepSeek R1 distill qwen 1.5B Model, Local Web Socket Server 
-> - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/web-server.py
+> - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/chatbot/web-server.py
 
 <img src="imgs/chatbot_system_for_readme.png">
+
+## TinyLlama-1.1B-Chat-v1.0 Local CoT Streaming Test
+
+> [!IMPORTANT] 
+> Description : TinyLlama 1.1B Model, Local Reasoning Test 
+> - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/open-framework/sLM_wCoT.py
+
+<img src="imgs/Cot_streaming.gif">
 
 ## Pipelines Methods
 
