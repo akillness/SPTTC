@@ -125,8 +125,8 @@ documents = SimpleDirectoryReader( #txt 파일만 포함된 폴더 전체를 불
     # exclude=["temp/"],
 ).load_data()
 
-# for d in documents:
-#     print(d)
+for d in documents:
+    print(d)
 
 index = VectorStoreIndex.from_documents(documents,show_progress=True)
 
