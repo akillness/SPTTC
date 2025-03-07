@@ -40,10 +40,9 @@ documents = reader.load_data()
 # 0. 임베딩 모델 설정
 # 0.1 전역 설정에 임베딩 모델 지정
 Settings.embed_model = HuggingFaceEmbedding(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+    # model_name="sentence-transformers/all-MiniLM-L6-v2",
     # model_name="jhgan/ko-sroberta-multitask" 
-    # sentence-transformers/all-mpnet-base-v2" 
-    # model_kwargs={"device": "cuda"}
+    model_name = "sentence-transformers/all-mpnet-base-v2" ,
 )
 
 
@@ -88,8 +87,8 @@ Settings.llm = HuggingFaceLLM( # ✅ 핵심 수정
     max_new_tokens=512,
     device_map="auto",
     generate_kwargs= { 
-                      "do_sample":True, 
-                      "temperature": 0.3, 
+                    #   "do_sample":True, 
+                    #   "temperature": 0.3, 
                       "repetition_penalty": 1.2,
                       "pad_token_id": tokenizer.eos_token_id,
                     # "pad_token_id": tokenizer.eos_token_id  # 패딩 토큰 설정 추가
@@ -144,12 +143,38 @@ for token in response.response_gen:
     response_text += token
     print(token, end="", flush=True)  # 토큰 단위로 실시간 출력
 
-# 최종 완료된 응답 확인 (선택 사항)
-print("\n\n=== 완성된 응답 ===")
-print(response_text)
+# # 최종 완료된 응답 확인 (선택 사항)
+# print("\n\n=== 완성된 응답 ===")
+# print(response_text)
 
 '''
 - 의존성 관리: PDF나 DOCX를 읽으려면 pip install pypdf python-docx 필요.
 - 대용량 파일: 메모리 부족 방지를 위해 청크 단위 처리 필요 (별도 구성).
 - 이미지 처리: OCR 사용 시 pytesseract와 Tesseract 엔진 설치 필수.
+'''
+
+'''
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.extractors import (
+    SummaryExtractor,
+    QuestionsAnsweredExtractor,
+    TitleExtractor,
+    KeywordExtractor,
+    # EntityExtractor,
+)
+
+transformations = [
+    SentenceSplitter(),
+    TitleExtractor(nodes=5),
+    QuestionsAnsweredExtractor(questions=3),
+    SummaryExtractor(summaries=["prev", "self"]),
+    KeywordExtractor(keywords=10),
+    # EntityExtractor(prediction_threshold=0.5),
+]
+
+# tansformations 파이프라인 적용
+from llama_index.core.ingestion import IngestionPipeline
+
+pipeline = IngestionPipeline(transformations=transformations)
+nodes = pipeline.run(documents=documents)
 '''
