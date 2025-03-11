@@ -171,8 +171,21 @@ class deepseek_r1():
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
     
-    def generate_stream(self, input_text, max_new_tokens=2800, temperature=0.6, top_p=0.95):
+    def generate_stream(self, input_text, max_new_tokens=512, temperature=0.7, top_p=0.9):
         
+        
+        sys_msg = """<|system|>
+                    당신은 한국어 전문 AI 어시스턴트입니다. 다음 원칙을 지켜 답변하세요:
+                    1. 존댓말 사용
+                    2. 숫자는 한글로 표기
+                    3. 전문 용어 설명 추가
+                </s>"""
+
+        user_msg = f"<|user|>{input_text}</s>"
+        assistant_msg = "<|assistant|>\n"
+
+        full_prompt = "\n".join([sys_msg, user_msg, assistant_msg])
+
         """스트리밍 응답 생성기"""
         streamer = TextIteratorStreamer(
             self.tokenizer,
@@ -181,18 +194,21 @@ class deepseek_r1():
             timeout=60.0
         )
 
-        inputs = self.tokenizer(input_text, return_tensors="pt").to(self.device)
+        inputs = self.tokenizer(full_prompt, return_tensors="pt").to(self.device)
 
         generation_kwargs = dict(
             **inputs,
-            streamer=streamer,
+            streamer=streamer,            
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
             do_sample=True,
-            repetition_penalty=1.1,
-            pad_token_id=self.tokenizer.eos_token_id,
-            num_beams=1
+            repetition_penalty=1.3,
+            typical_p = 0.5,  # 한국어 분포 특성 반영           
+            no_repeat_ngram_size = 4,  # 한국어 어순 특성 고려
+            eos_token_id = self.tokenizer.eos_token_id,
+            pad_token_id = self.tokenizer.pad_token_id,
+            num_beams=1,
         )
 
         generation_thread = threading.Thread(

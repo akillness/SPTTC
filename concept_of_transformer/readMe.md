@@ -6,6 +6,8 @@
 
 <img src="imgs/chatbot_system_for_readme.png">
 
+<img src="imgs/chatbot_system_for_readme_2.gif">
+
 ## TinyLlama-1.1B-Chat-v1.0 Local CoT Streaming Test
 
 > [!IMPORTANT] 
