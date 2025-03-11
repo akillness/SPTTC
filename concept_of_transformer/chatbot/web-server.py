@@ -19,8 +19,68 @@ def worker_process(model):
     #     device=device
     # )
     print('Worker is available state')
+    
     async def handler(websocket):
-        '''클라이언트의 웹소켓 연결을 처리하는 핸들러'''
+        print(f"Connected client : {websocket.remote_address}")
+        try:
+            async for message in websocket:
+                # print(f"Waiting Message..")
+                messagetojson = json.loads(message)
+                
+                if 'content' not in messagetojson:
+                    # print("Invalid message format")
+                    continue
+
+                print(f"[Query] : {messagetojson['content']}")
+                
+                # 스트리밍 생성기 시작
+                streamer = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    model.generate_stream,
+                    messagetojson['content']
+                )
+
+                # 실시간 스트리밍 처리
+                full_response = ""
+                while True:
+                    try:
+                        token = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda: next(streamer, None)
+                        )
+                        if token is None:
+                            break
+                            
+                        full_response += token
+                        
+                        # 실시간 업데이트 메시지 전송
+                        messagetojson.update({
+                            'content': full_response,
+                            'isMe': False,
+                            'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+                            'isStreaming': True,  # 스트리밍 진행 중 여부
+                        })
+
+                        await websocket.send(json.dumps(messagetojson))
+                        
+                    except Exception as e:
+                        print(f"스트리밍 오류: {e}")
+                        break
+                
+                # messagetojson['isStreaming'] = False
+                print(f"[전체 응답 완료]\n{full_response}")
+
+        except websockets.exceptions.ConnectionClosedOK:
+            print(f"클라이언트 연결 종료: {websocket.remote_address}")
+        except Exception as e:
+            print(f"에러 발생: {e}")
+        finally:
+            print(f"연결 종료 처리 완료: {websocket.remote_address}")
+
+    # return handler
+    '''
+    async def handler(websocket):
+        # 클라이언트의 웹소켓 연결을 처리하는 핸들러
         print(f"Connected client : {websocket.remote_address}")
         try:
             async for message in websocket:
@@ -41,6 +101,7 @@ def worker_process(model):
                     model.generate,  # 모델 추론 메서드
                     messagetojson['content']       # 입력 메시지
                 )
+                
                 print(f"[Server] response: {response}")
                 
                 # Update Message 
@@ -57,7 +118,7 @@ def worker_process(model):
             print(f"웹소켓 에러: {e}")
         finally:
             print(f"클라이언트 {websocket.remote_address} 연결 해제됨")
-
+    '''
     async def main():
         # SO_REUSEADDR 및 reuse_port 설정으로 다중 바인딩 허용
         async with websockets.serve(

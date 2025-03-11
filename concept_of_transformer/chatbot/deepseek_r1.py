@@ -2,7 +2,11 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, EncoderDecoderModel, DynamicCache
 
+from transformers import TextIteratorStreamer
+import threading
+
 import timeit
+
 '''
 psutil: 시스템 메모리 정보 조회
 pympler: 객체 메모리 사용량 정확 측정
@@ -166,6 +170,38 @@ class deepseek_r1():
         # 출력된 토큰을 문자열로 변환하여 결과 출력
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
+    
+    def generate_stream(self, input_text, max_new_tokens=2800, temperature=0.6, top_p=0.95):
+        
+        """스트리밍 응답 생성기"""
+        streamer = TextIteratorStreamer(
+            self.tokenizer,
+            skip_prompt=True,
+            skip_special_tokens=True,
+            timeout=60.0
+        )
+
+        inputs = self.tokenizer(input_text, return_tensors="pt").to(self.device)
+
+        generation_kwargs = dict(
+            **inputs,
+            streamer=streamer,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            do_sample=True,
+            repetition_penalty=1.1,
+            pad_token_id=self.tokenizer.eos_token_id,
+            num_beams=1
+        )
+
+        generation_thread = threading.Thread(
+            target=self.model.generate, 
+            kwargs=generation_kwargs
+        )
+        generation_thread.start()
+
+        return streamer
     
     def get_usable_process_num(self):
         process_num = -1
