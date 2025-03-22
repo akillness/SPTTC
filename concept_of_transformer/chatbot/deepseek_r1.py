@@ -61,7 +61,6 @@ class deepseek_r1():
                 delattr(config, "quantization_config")
         '''
         if os_name == "Darwin":
-            
              # 모델 및 토크나이저 로드
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, 
@@ -76,8 +75,7 @@ class deepseek_r1():
                 # device_map="auto",              # 메모리 자동 할당
                 torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
                 )
-        elif os_name == "Windows":
-            
+        elif os_name == "Windows":            
              # 모델 및 토크나이저 로드
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, 
@@ -90,7 +88,6 @@ class deepseek_r1():
                 torch_dtype=torch.bfloat16  # 메모리 절약을 위해 추가
                 )
         elif os_name == "Linux":
-            # from accelerate import init_empty_weights, load_checkpoint_and_dispatch
             from transformers import BitsAndBytesConfig
             
             # 1. 양자화 설정 객체 생성
@@ -98,39 +95,27 @@ class deepseek_r1():
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,  # 8비트는 load_in_8bit=True
                 bnb_4bit_quant_type="nf4",       # 양자화 알고리즘 타입 (nf4/fp4)
-                bnb_4bit_compute_dtype=torch.bfloat16, # torch.bfloat16 (A100, H100 등)  # 계산 dtype
+                bnb_4bit_compute_dtype=torch.float16, # torch.bfloat16 (A100, H100 등)  # 계산 dtype
                 bnb_4bit_use_double_quant=True  # 이중 양자화 여부
             )
-            
+            '''
             quantization_config = BitsAndBytesConfig(
                 load_in_8bit=True,
-                llm_int8_threshold=5.0,  # 8비트 변환 임계값
+                llm_int8_threshold=6.0,  # 8비트 변환 임계값
                 llm_int8_enable_fp32_cpu_offload=True
-            )'''
-            # 빈 가중치로 모델 초기화
-            # with init_empty_weights():
+            )
+
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, 
                 cache_dir=cached_dir,
                 config=config, 
-                # quantization_config=quantization_config,
+                quantization_config=quantization_config,
                 attn_implementation="eager",
-                # attn_implementation="flash_attention_2" , #해당 방식은 Linux 적합,  # 또는 "eager", cuda 11.7 이상버전에서만 가능 
+                # attn_implementation="flash_attention_2" 해당 방식은 Linux 적합,  # 또는 "eager", cuda 11.7 이상버전에서만 가능 
                 # max_position_embeddings=3000,  # 모델이 지원하는 경우에만 추가                
-                torch_dtype=torch.bfloat16,  # 메모리 절약을 위해 추가
                 device_map="auto",              # 메모리 자동 할당                
                 )
-            '''
-            # 모델을 GPU에 로드 및 분산
-            self.model = load_checkpoint_and_dispatch(
-                model,
-                checkpoint=model_name,
-                device_map="auto",
-                bnb_config=quantization_config,
-                offload_folder="offload",
-                offload_state_dict=True,
-            )'''
-            
+        
         # RoPE 확장 적용 (Rotary Position Embedding)
         # self.model.config.rope_scaling = {
         #     "type": "dynamic", 
@@ -142,7 +127,10 @@ class deepseek_r1():
         # 패딩 토큰 명시적 설정 추가
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token  # 1번 방법 적용
-            
+            '''
+            self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})  # 새 패딩 토큰 추가
+            self.model.resize_token_embeddings(len(self.tokenizer))  # 모델 임베딩 레이어 조정
+            '''
             
         self.device = torch.device(device)
     

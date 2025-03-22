@@ -49,12 +49,12 @@ answer_llm = HuggingFacePipeline(pipeline=build_stage_pipeline("답변"))
 # 5. 프롬프트 템플릿
 prompt_templates = {
     "analysis": PromptTemplate.from_template("""
-    <|system|>문제 분석가</s>
+    <|system|>시나리오 전문가</s>
     <|user|>{question} 이 문제를 2단계로 분해하세요.</s>
-    <|assistant|>분석:"""),
+    <|assistant|>시나리오 생성:"""),
     
     "research": PromptTemplate.from_template("""
-    <|system|>정보 수집가</s>
+    <|system|>시나리오 분석 전문가</s>
     <|user|>문제: {question}
     분석: {analysis}
     관련 정보를 수집하세요.</s>
