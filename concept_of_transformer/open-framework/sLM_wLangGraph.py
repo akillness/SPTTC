@@ -30,7 +30,7 @@ model = AutoModelForCausalLM.from_pretrained(
 streamer = TextIteratorStreamer(
     tokenizer,
     skip_prompt=True,
-    # timeout=10.0,  # 스트리밍 대기 시간
+    timeout=10.0,  # 스트리밍 대기 시간
     skip_special_tokens=True
 )
 
@@ -56,15 +56,9 @@ class AgentState(TypedDict):
 
 
 def validate_response(state: AgentState): 
-    print(f"\n[검증 단계] 현재 응답: {state['response']}")  # 디버깅용 출력
+    print(f"\n\n[검증 단계] 현재 응답: {state['response']}")  # 디버깅용 출력
     if "다시" in state["response"]:
         return {"input": "더 자세한 설명을 부탁드립니다."}
-    return state
-
-# 6. 스트리밍 출력 노드 개선
-def stream_output(state: AgentState):
-    if state.get("is_streaming", False):
-        print(state["partial_response"], end="", flush=True)
     return state
 
 # 5. 제네레이터 노드 재구성 (pipe 사용 버전)
@@ -80,10 +74,12 @@ def generate_response(state: AgentState):
     generation_thread.start()
     
     # 스트리밍 처리
+    print(f"\n[스트리밍 단계] 현재 응답: ")  # 디버깅용 출력
     partial_response = ""
     for token in streamer:
         partial_response += token
-        yield {"partial_response": token, "response": partial_response, "is_streaming": True}
+        print(token, end="", flush=True)
+        # yield {"partial_response": token, "response": partial_response, "is_streaming": True}
     
     generation_thread.join()
     return {"response": partial_response, "is_streaming": False}
@@ -91,13 +87,11 @@ def generate_response(state: AgentState):
 # 7. 그래프 재구성 (검증 단계 복원)
 workflow = StateGraph(AgentState)
 workflow.add_node("generator", generate_response)
-workflow.add_node("streamer", stream_output)
 workflow.add_node("validator", validate_response)  # 검증 단계 복원
 workflow.add_node("END", lambda state: state)
 
 workflow.set_entry_point("generator")
-workflow.add_edge("generator", "streamer")
-workflow.add_edge("streamer", "validator")  # 검증 단계 연결
+workflow.add_edge("generator", "validator")  # 검증 단계 연결
 workflow.add_conditional_edges(
     "validator",
     lambda x: "재시도" if "다시" in x["response"] else "종료",  # 조건 수정
