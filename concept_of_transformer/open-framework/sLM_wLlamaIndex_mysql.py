@@ -190,6 +190,26 @@ class MySQLVectorStore:
 
 # 샘플 데이터 생성 및 처리
 def create_sample_documents():
+    try:
+        # PDF 파일에서 문서 로드
+        documents = SimpleDirectoryReader(
+            input_files=["data/resume.pdf"]
+        ).load_data()
+        
+        if not documents:
+            print("⚠️ PDF 파일에서 데이터를 불러오지 못했습니다. 샘플 데이터를 사용합니다.")
+            return _create_fallback_documents()
+            
+        print(f"✅ PDF 파일에서 {len(documents)}개의 문서를 성공적으로 불러왔습니다.")
+        return documents
+    except Exception as e:
+        print(f"⚠️ PDF 파일 로드 중 오류 발생: {e}")
+        print("샘플 데이터를 대신 사용합니다.")
+        return _create_fallback_documents()
+
+
+def _create_fallback_documents():
+    """PDF 파일 로드 실패 시 사용할 샘플 데이터"""
     sample_texts = [
         "기계 학습은 인공지능의 한 분야로, 컴퓨터가 데이터로부터 학습하여 패턴을 찾아내는 기술입니다.",
         "딥러닝은 여러 층의 인공 신경망을 사용하여 데이터를 학습하는 기계 학습의 한 방법입니다.",
