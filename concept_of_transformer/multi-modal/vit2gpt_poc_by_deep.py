@@ -78,6 +78,6 @@ def generate_image_caption(image_path, max_length=30):
     return tokenizer.decode(generated_ids[0], skip_special_tokens=True)
 
 if __name__ == "__main__":
-    image_path = "test.jpeg"
+    image_path = "./imgs/test.jpeg"
     caption = generate_image_caption(image_path)
     print(f"생성된 설명: {caption}")

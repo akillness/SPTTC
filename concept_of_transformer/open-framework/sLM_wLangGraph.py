@@ -3,13 +3,12 @@
 
 from langgraph.graph import StateGraph
 from langchain_core.runnables import RunnablePassthrough
-from langchain_huggingface import HuggingFacePipeline  # LangChain 0.0.37 이후로 HuggingFacePipeline이 별도 패키지로 분리
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from typing import TypedDict, Any
 import threading
-from transformers import TextIteratorStreamer  # 변경된 스트리머
+from transformers import TextIteratorStreamer
 
 
 
@@ -30,7 +29,6 @@ model = AutoModelForCausalLM.from_pretrained(
 streamer = TextIteratorStreamer(
     tokenizer,
     skip_prompt=True,
-    timeout=10.0,  # 스트리밍 대기 시간
     skip_special_tokens=True
 )
 
@@ -44,7 +42,7 @@ pipe = pipeline(
     top_p=0.95,
     repetition_penalty=1.5,
     streamer=streamer,
-    # generate_kwargs={"streamer": streamer}  # 스트리머 연결
+    # generate_kwargs={"streamer": streamer}  # 스트리머 연결 방식 변경
 )
 
 # 4. 상태 정의 (스트리밍 상태 추가)
