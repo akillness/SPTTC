@@ -53,3 +53,9 @@ async def get_weather(city: str) -> str:
             f"▫️ 추가 정보: {detail_text.replace(' · ', ', ')}"
         )
 
+@mcp.tool()
+def generate_address(count: int = 1, locale: str = None) -> str:
+    """Generate address data including street, city, state, country, and coordinates"""
+    # Implementation of generate_address function
+    pass
+
