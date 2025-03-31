@@ -1,178 +1,117 @@
-from transformers import (
-    ViTModel, 
-    AutoModelForCausalLM, 
-    ViTImageProcessor, 
-    AutoTokenizer,
-    EncoderDecoderModel,
-    EncoderDecoderConfig,
-    PretrainedConfig
-)
-
 import torch
 import torch.nn as nn
-
 from PIL import Image
-'''
-Zero-Shot 이미지 캡셔닝의 기본 프레임워크
-'''
-# # 0. 차원 불일치 해결 (CustomViTEncoder Layer 추가)
-# class CustomViTEncoder(ViTModel):
-#     def __init__(self, eoncoder_config,decoder_config):
-#         super().__init__(eoncoder_config)
-#         # 커스텀 레이어 추가 (예: Linear Layer)
-#         self.custom_layer = nn.Linear(eoncoder_config.hidden_size, decoder_config.hidden_size)
-    
-#     # 4. Forward 함수 오버라이드
-#     def forward(self, pixel_values):
-#         # 기존 ViT forward
-#         outputs = super().forward(pixel_values)
-#         last_hidden_states = outputs.last_hidden_state
-        
-#         # 커스텀 조정
-#         adjusted_states = self.custom_layer(last_hidden_states)
-#         return adjusted_states
-    
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoImageProcessor, CLIPVisionModel
+import warnings
+warnings.filterwarnings("ignore")
 
-# 0. Encoder-Decoder 직접 연결
 class CustomEncoderDecoder(nn.Module):
-    def __init__(self, encoder, decoder):
+    def __init__(self):
         super().__init__()
-        self.encoder = encoder
-        self.decoder = decoder
+        self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+        print(f"Using device: {self.device}")
         
-    def forward(self, pixel_values, input_ids):
-        # 인코더 출력
-        encoder_outputs = self.encoder(pixel_values)
+        # CLIP 비전 인코더만 초기화 (text 모델 제외)
+        self.image_processor = AutoImageProcessor.from_pretrained("openai/clip-vit-base-patch32", cache_dir='./')
+        self.vision_encoder = CLIPVisionModel.from_pretrained("openai/clip-vit-base-patch32", cache_dir='./').to(self.device)
         
-        # 디코더에 전달 (커스텀 로직 추가)
-        decoder_outputs = self.decoder(
-            input_ids=input_ids,
-            encoder_hidden_states=encoder_outputs
-        )
-        return decoder_outputs
-
-# from transformers import AutoModelForCausalLM, AutoConfig
-# import torch.nn as nn
-
-class CustomDeepSeekDecoder(nn.Module):
-    def __init__(self, decoder_config, encoder_hidden_size):
-        super().__init__()
-        # 원본 DeepSeek 디코더 로드
-        self.decoder = AutoModelForCausalLM.from_pretrained(
-            "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-            cache_dir="./",
-            config=decoder_config
-        )
+        # DeepSeek 디코더 초기화 (범용 모델로 변경)
+        try:
+            # 일반 언어 모델 사용 시도 (더 자연스러운 이미지 설명 생성)
+            model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir='./')
+            self.decoder = AutoModelForCausalLM.from_pretrained(model_name, cache_dir='./').to(self.device)
+            print(f"사용 중인 언어 모델: {model_name}")
+        except Exception as e:
+            # 범용 모델 로드 실패 시 코드 모델로 폴백
+            print(f"범용 모델 로드 실패: {str(e)}, 코드 모델로 대체합니다.")
+            model_name = "deepseek-ai/deepseek-coder-1.3b-base"
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir='./')
+            self.decoder = AutoModelForCausalLM.from_pretrained(model_name, cache_dir='./').to(self.device)
+            print(f"사용 중인 언어 모델: {model_name}")
+            
+        # 토크나이저 설정
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         
-        # 크로스 어텐션 레이어 추가
-        self.cross_attention = nn.MultiheadAttention(
-            embed_dim=decoder_config.hidden_size,
-            num_heads=decoder_config.num_attention_heads,
-            kdim=encoder_hidden_size,
-            vdim=encoder_hidden_size
-        )
-        self.layer_norm = nn.LayerNorm(decoder_config.hidden_size)
+        # 이미지 특징 → 텍스트 임베딩 프로젝션 레이어
+        self.projection = nn.Linear(768, self.decoder.config.hidden_size).to(self.device)  # CLIP vision은 768 차원
 
-    def forward(self, input_ids, encoder_hidden_states):
-        # 기존 디코더 출력
-        outputs = self.decoder(input_ids=input_ids)
-        last_hidden_states = outputs.logits
+    def encode_image(self, image_path):
+        """이미지 특징 추출 및 프로젝션"""
+        image = Image.open(image_path)
+        inputs = self.image_processor(images=image, return_tensors="pt").to(self.device)
         
-        # 크로스 어텐션 적용
-        cross_attn_output, _ = self.cross_attention(
-            query=last_hidden_states,
-            key=encoder_hidden_states,
-            value=encoder_hidden_states
-        )
-        adjusted_output = self.layer_norm(last_hidden_states + cross_attn_output)
-        return adjusted_output
+        # CLIP 비전 인코더로 이미지 특징 추출
+        vision_outputs = self.vision_encoder(**inputs)
+        image_features = vision_outputs.pooler_output  # [1, 768] 풀링된 출력 사용
+        
+        return self.projection(image_features)  # [1, decoder_hidden_size]
 
-# 사용 예시
-# decoder_config = AutoConfig.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
-# custom_decoder = CustomDeepSeekDecoder(decoder_config, encoder_hidden_size=768)
+    def generate_caption(self, image_features, prompt="이 이미지에 대해 자세히 설명해주세요:"):
+        """이미지 특징과 프롬프트 결합 후 생성"""
+        try:
+            # 프롬프트 토크나이징
+            inputs = self.tokenizer(
+                prompt, 
+                return_tensors="pt", 
+                padding="max_length", 
+                truncation=True,
+                max_length=32,
+                add_special_tokens=True
+            ).to(self.device)
+            
+            # 이미지 특징 + 텍스트 임베딩 결합 복원
+            text_embeds = self.decoder.get_input_embeddings()(inputs.input_ids)
+            image_embeds = image_features.unsqueeze(1)
+            combined_embeds = torch.cat([image_embeds, text_embeds], dim=1)
+            
+            # 어텐션 마스크 조정 (차원 일치 보장)
+            attention_mask = torch.cat([
+                torch.ones(1, 1).to(self.device),  # 이미지 토큰 마스크
+                inputs.attention_mask
+            ], dim=1)
+            
+            # 생성 실행
+            outputs = self.decoder.generate(
+                inputs_embeds=combined_embeds,  # 이미지 + 텍스트 결합 임베딩 사용
+                attention_mask=attention_mask,  # 결합된 어텐션 마스크 사용
+                max_new_tokens=150,
+                num_beams=3,
+                do_sample=True,
+                top_p=0.95,
+                temperature=0.7,
+                pad_token_id=self.tokenizer.pad_token_id,
+                eos_token_id=self.tokenizer.eos_token_id,
+                repetition_penalty=1.2  # 반복 방지 패널티 추가
+            )
+            
+            generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            
+            # 프롬프트 제거하고 생성된 텍스트만 반환
+            if prompt in generated_text:
+                generated_text = generated_text.split(prompt, 1)[1]
+            
+            return generated_text.strip()
+            
+        except Exception as e:
+            print(f"Error during generation: {str(e)}")
+            return None
 
-# 1. Encoder와 Decoder를 별도로 로드 (cache_dir 지정)
-encoder = ViTModel.from_pretrained(
-    "google/vit-base-patch16-224-in21k",
-    cache_dir="./"  # 캐시 디렉토리 명시
-)
+def main():
+    try:
+        model = CustomEncoderDecoder()
+        model.eval()
+        
+        image_path = "test.jpeg"
+        print(f"\n이미지 파일: {image_path}")
+        with torch.no_grad():
+            image_features = model.encode_image(image_path)
+            caption = model.generate_caption(image_features)
+            print(f"\n생성된 캡션: {caption}")
+        
+    except Exception as e:
+        print(f"Error in main: {str(e)}")
 
-decoder = AutoModelForCausalLM.from_pretrained(
-    "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-    cache_dir="./"  # 캐시 디렉토리 명시
-)
-
-# 2. Encoder-Decoder custom encoder 생성
-# custom_vitencoder = CustomViTEncoder(encoder.config,decoder.config)
-
-# # 3. Encoder-Decoder Config 생성
-# config = EncoderDecoderConfig.from_encoder_decoder_configs(
-#     encoder_config=custom_vitencoder.config,
-#     decoder_config=decoder.config
-# )
-
-# 3. EncoderDecoderModel에 직접 주입
-model = CustomEncoderDecoder(
-    encoder=encoder,
-    decoder=decoder,
-)
-
-# # 4. Encoder-Decoder 모델 초기화 (cache_dir 지정)
-# model = EncoderDecoderModel.from_encoder_decoder_pretrained(
-#     encoder_pretrained_model_name_or_path="google/vit-base-patch16-224-in21k",
-#     decoder_pretrained_model_name_or_path="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-#     encoder_kwargs={"cache_dir": "./"},  # encoder 캐시 경로
-#     decoder_kwargs={"cache_dir": "./"},  # decoder 캐시 경로
-#     config=config
-#)
-
-
-
-'''
-# 학습시 decoder만 학습하는 방법
-for param in model.encoder.parameters():
-    param.requires_grad = False
-'''
-
-''' 전처리 파이프라인 설정 '''
-# 이미지 프로세서 (ViT용)
-image_processor = ViTImageProcessor.from_pretrained("google/vit-base-patch16-224-in21k",cache_dir='./')
-
-# 텍스트 토크나이저 (DeepSeek용)
-tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",cache_dir='./')
-tokenizer.pad_token = tokenizer.eos_token  # 패딩 토큰 설정
-
-def process_data(image_path):
-    # 이미지 로드 및 전처리
-    image = Image.open(image_path).convert("RGB")
-    pixel_values = image_processor(image, return_tensors="pt").pixel_values
-    
-    # 디코더 입력 생성 (시작 토큰 추가)
-    decoder_inputs = tokenizer(
-        tokenizer.bos_token,  # <bos> 토큰으로 초기화
-        return_tensors="pt",
-        add_special_tokens=False
-    )
-    return pixel_values, decoder_inputs.input_ids
-
-# 이미지 경로 설정
-image_path = "test.jpeg"
-
-# 데이터 전처리
-pixel_values, decoder_input_ids = process_data(image_path)
-
-# 모델 추론
-with torch.no_grad():
-    # outputs = model.generate(
-    #     pixel_values=pixel_values,
-    #     decoder_input_ids=decoder_input_ids,
-    #     max_length=100,
-    #     num_beams=5,
-    #     early_stopping=True
-    # )
-    
-    outputs = model(pixel_values=pixel_values, input_ids=decoder_input_ids)
-
-# 결과 디코딩
-generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print(f"Generated Caption: {generated_text}")
+if __name__ == "__main__":
+    main()
