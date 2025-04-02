@@ -18,7 +18,7 @@ class Boid:
         self.velocity = Vector2(random_x, random_y).normalize() * 3
         self.acceleration = Vector2(0, 0)
         self.max_force = 0.3
-        self.max_speed = 0.1
+        self.max_speed = 5
         self.perception = 80
 
     def update(self):
