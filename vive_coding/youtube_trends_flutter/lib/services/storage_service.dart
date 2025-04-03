@@ -93,7 +93,7 @@ class WebStorageService implements StorageService {
     await txn.completed;
     db.close();
     
-    return records?.map((record) {
+    return records.map((record) {
       final Map<String, dynamic> data = record as Map<String, dynamic>;
       return {
         'videoId': data['videoId'],

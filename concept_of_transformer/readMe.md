@@ -1,3 +1,19 @@
+
+## Resume Summary with RAG
+
+> [!IMPORTANT] 
+> Description : Summarized Resume by RAG 
+> - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/open-framework/resume_summarizer.py
+
+<img src="imgs/resume_summary_log(w:rag).png" style="width:50%;, height:100;">
+
+<img src="imgs/resume_experience.png" style="width:50%;, height:100;">
+
+<img src="imgs/resume_tech_stack.png" style="width:50%;, height:100;">
+
+
+
+
 ## DeepSeek R1 1.5B Local Test
 
 > [!IMPORTANT] 
@@ -5,6 +21,7 @@
 > - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/chatbot/web-server.py
 
 <img src="imgs/chatbot_system_for_readme.png">
+
 
 <img src="imgs/chatbot_system_for_readme_2.gif">
 

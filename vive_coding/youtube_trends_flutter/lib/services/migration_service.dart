@@ -30,7 +30,7 @@ class MigrationService {
     
     final records = await store.getAll();
     
-    if (records != null && records.isNotEmpty) {
+    if (records.isNotEmpty) {
       final trends = records.map((dynamic record) {
         final Map<String, dynamic> data = record as Map<String, dynamic>;
         return VideoTrendsCompanion(

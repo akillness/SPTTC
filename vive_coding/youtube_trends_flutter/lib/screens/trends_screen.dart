@@ -126,7 +126,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
-                          headingRowColor: MaterialStateProperty.all(
+                          headingRowColor: WidgetStateProperty.all(
                             const Color(0xFF4A6FFF),
                           ),
                         ),
@@ -160,9 +160,9 @@ class _TrendsScreenState extends State<TrendsScreen> {
                           }
 
                           return DataRow(
-                            color: MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if (states.contains(MaterialState.hovered)) {
+                            color: WidgetStateProperty.resolveWith<Color?>(
+                              (Set<WidgetState> states) {
+                                if (states.contains(WidgetState.hovered)) {
                                   return const Color(0xFF4A6FFF).withOpacity(0.05);
                                 }
                                 return null;
