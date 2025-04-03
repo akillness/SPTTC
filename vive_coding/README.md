@@ -1,12 +1,10 @@
 
-# 오늘의 추천 영상
+# Youtube 조회수 기준, 검색 기능 
 
 <div style="text-align:center">
-  <iframe 
-    width="90%" 
-    height="400"
-    src="https://www.youtube.com/embed/517GmSuA8H8?modestbranding=1&rel=0" 
-    style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
-    allowfullscreen>
-  </iframe>
+
+[![Video Thumbnail](https://img.youtube.com/vi/517GmSuA8H8/0.jpg)](https://www.youtube.com/watch?v=517GmSuA8H8)
+  
 </div>
+
+
