@@ -7,6 +7,7 @@ import '../models/youtube_data.dart';
 import '../widgets/charts/trends_pie_chart.dart';
 import '../widgets/charts/keyword_typography.dart';
 import '../widgets/pagination_controls.dart';
+import '../services/database_helper.dart';
 
 class TrendsScreen extends StatefulWidget {
   const TrendsScreen({super.key});
@@ -17,6 +18,7 @@ class TrendsScreen extends StatefulWidget {
 
 class _TrendsScreenState extends State<TrendsScreen> {
   final ApiService _apiService = ApiService();
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   List<YoutubeData> _trends = [];
   bool _isLoading = false;
   String _searchQuery = '';
@@ -47,6 +49,9 @@ class _TrendsScreenState extends State<TrendsScreen> {
         _totalPages = (_trends.length / _itemsPerPage).ceil();
         _currentPage = 1;
       });
+      for (final trend in _trends) {
+        await _dbHelper.insertTrend(trend);
+      }
     } catch (e) {
       print('Error loading trends: $e');
     } finally {
@@ -65,6 +70,9 @@ class _TrendsScreenState extends State<TrendsScreen> {
         _totalPages = (_trends.length / _itemsPerPage).ceil();
         _currentPage = 1;
       });
+      for (final trend in _trends) {
+        await _dbHelper.insertTrend(trend);
+      }
     } catch (e) {
       print('Error searching trends: $e');
     } finally {

@@ -1,30 +1,51 @@
-import 'dart:html' as html;
-import 'dart:convert';
+import 'package:idb_shim/idb_client.dart';
+import 'package:idb_shim/idb_browser.dart';
 import '../models/youtube_data.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
-  static const String TRENDS_KEY = 'youtube_trends';
-  static const String KEYWORDS_KEY = 'youtube_keywords';
-  static const String STATS_KEY = 'youtube_stats';
+  static Database? _database;
+  static const String dbName = 'youtube_trends.db';
+  static const int dbVersion = 1;
 
   DatabaseHelper._init();
 
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB();
+    return _database!;
+  }
+
+  Future<Database> _initDB() async {
+    final idbFactory = getIdbFactory()!;
+    final db = await idbFactory.open(dbName,
+        version: dbVersion,
+        onUpgradeNeeded: (VersionChangeEvent event) {
+          final db = event.database;
+          // Create object stores
+          db.createObjectStore('trends', keyPath: 'video_id');
+          db.createObjectStore('keywords', keyPath: 'id', autoIncrement: true);
+          final statsStore = db.createObjectStore('stats', keyPath: 'keyword');
+          statsStore.createIndex('total_count_idx', 'total_count');
+        });
+    return db;
+  }
+
   Future<void> insertTrend(YoutubeData trend) async {
+    final db = await database;
+    final txn = db.transaction(['trends', 'keywords', 'stats'], 'readwrite');
+    
     try {
-      // 기존 데이터 로드
-      final trendsJson = html.window.localStorage[TRENDS_KEY] ?? '[]';
-      final keywordsJson = html.window.localStorage[KEYWORDS_KEY] ?? '[]';
-      final statsJson = html.window.localStorage[STATS_KEY] ?? '{}';
+      final trendsStore = txn.objectStore('trends');
+      final keywordsStore = txn.objectStore('keywords');
+      final statsStore = txn.objectStore('stats');
 
-      List<Map<String, dynamic>> trends = List<Map<String, dynamic>>.from(json.decode(trendsJson));
-      List<Map<String, dynamic>> keywords = List<Map<String, dynamic>>.from(json.decode(keywordsJson));
-      Map<String, dynamic> stats = Map<String, dynamic>.from(json.decode(statsJson));
-
-      // 중복 체크
-      if (!trends.any((t) => t['video_id'] == trend.videoId)) {
-        // 트렌드 데이터 추가
-        trends.add({
+      // Check if video already exists
+      final existing = await trendsStore.getObject(trend.videoId);
+      
+      if (existing == null) {
+        // Insert trend data
+        await trendsStore.put({
           'video_id': trend.videoId,
           'title': trend.title,
           'views': trend.views,
@@ -33,128 +54,101 @@ class DatabaseHelper {
           'collected_at': DateTime.now().toIso8601String(),
         });
 
-        // 키워드 데이터 추가
+        // Insert keywords and update stats
         for (final keyword in trend.keywords) {
-          keywords.add({
+          await keywordsStore.put({
             'video_id': trend.videoId,
             'keyword': keyword,
           });
 
-          // 통계 업데이트
-          if (!stats.containsKey(keyword)) {
-            stats[keyword] = {
+          // Update stats
+          final stat = await statsStore.getObject(keyword) as Map<String, dynamic>?;
+          if (stat == null) {
+            await statsStore.put({
+              'keyword': keyword,
               'total_count': 1,
               'last_seen': DateTime.now().toIso8601String(),
               'avg_views': trend.views,
               'avg_likes': trend.likes,
-            };
+            });
           } else {
-            final stat = stats[keyword];
-            stat['total_count'] = (stat['total_count'] as int) + 1;
-            stat['last_seen'] = DateTime.now().toIso8601String();
-            stat['avg_views'] = ((stat['avg_views'] as num) + trend.views) / 2;
-            stat['avg_likes'] = ((stat['avg_likes'] as num) + trend.likes) / 2;
+            await statsStore.put({
+              'keyword': keyword,
+              'total_count': (stat['total_count'] as int) + 1,
+              'last_seen': DateTime.now().toIso8601String(),
+              'avg_views': ((stat['avg_views'] as num) + trend.views) / 2,
+              'avg_likes': ((stat['avg_likes'] as num) + trend.likes) / 2,
+            });
           }
         }
-
-        // 데이터 저장
-        html.window.localStorage[TRENDS_KEY] = json.encode(trends);
-        html.window.localStorage[KEYWORDS_KEY] = json.encode(keywords);
-        html.window.localStorage[STATS_KEY] = json.encode(stats);
       }
+      
+      await txn.completed;
     } catch (e) {
-      print('Error saving data: $e');
+      print('Error inserting trend: $e');
+      rethrow;
     }
   }
 
   Future<List<Map<String, dynamic>>> getKeywordStats() async {
-    try {
-      final statsJson = html.window.localStorage[STATS_KEY] ?? '{}';
-      final Map<String, dynamic> stats = Map<String, dynamic>.from(json.decode(statsJson));
-      
-      return stats.entries.map((entry) => <String, dynamic>{
-        'keyword': entry.key,
-        ...Map<String, dynamic>.from(entry.value as Map),
-      }).toList()
-        ..sort((a, b) => (b['total_count'] as int).compareTo(a['total_count'] as int));
-    } catch (e) {
-      print('Error getting keyword stats: $e');
-      return [];
-    }
+    final db = await database;
+    final txn = db.transaction(['stats'], 'readonly');
+    final statsStore = txn.objectStore('stats');
+    final stats = await statsStore.getAll();
+    await txn.completed;
+    return List<Map<String, dynamic>>.from(stats)
+      ..sort((a, b) => (b['total_count'] as int).compareTo(a['total_count'] as int));
   }
 
   Future<List<Map<String, dynamic>>> getTrendsByKeyword(String keyword) async {
-    try {
-      final trendsJson = html.window.localStorage[TRENDS_KEY] ?? '[]';
-      final keywordsJson = html.window.localStorage[KEYWORDS_KEY] ?? '[]';
+    final db = await database;
+    final txn = db.transaction(['trends', 'keywords'], 'readonly');
+    final keywordsStore = txn.objectStore('keywords');
+    final trendsStore = txn.objectStore('trends');
 
-      final List<Map<String, dynamic>> trends = List<Map<String, dynamic>>.from(
-        (json.decode(trendsJson) as List).map((item) => Map<String, dynamic>.from(item)).toList()
-      );
-      final List<Map<String, dynamic>> keywords = List<Map<String, dynamic>>.from(
-        (json.decode(keywordsJson) as List).map((item) => Map<String, dynamic>.from(item)).toList()
-      );
+    final keywordEntries = await keywordsStore.getAll();
+    final videoIds = (keywordEntries as List<Map<String, dynamic>>)
+        .where((k) => k['keyword'] == keyword)
+        .map((k) => k['video_id'] as String)
+        .toSet();
 
-      final videoIds = keywords
-          .where((k) => k['keyword'] == keyword)
-          .map((k) => k['video_id'] as String)
-          .toSet();
+    final trends = await Future.wait(
+        videoIds.map((id) => trendsStore.getObject(id)));
 
-      return trends
-          .where((t) => videoIds.contains(t['video_id']))
-          .toList()
-        ..sort((a, b) => (b['views'] as int).compareTo(a['views'] as int));
-    } catch (e) {
-      print('Error getting trends by keyword: $e');
-      return [];
-    }
+    await txn.completed;
+    return List<Map<String, dynamic>>.from(
+        trends.whereType<Map<String, dynamic>>())
+      ..sort((a, b) => (b['views'] as int).compareTo(a['views'] as int));
   }
 
   Future<List<Map<String, dynamic>>> getTopTrends({int limit = 10}) async {
-    try {
-      final trendsJson = html.window.localStorage[TRENDS_KEY] ?? '[]';
-      final List<Map<String, dynamic>> trends = List<Map<String, dynamic>>.from(
-        (json.decode(trendsJson) as List).map((item) => Map<String, dynamic>.from(item)).toList()
-      );
-
-      return trends
-        ..sort((a, b) => (b['views'] as int).compareTo(a['views'] as int))
-        ..take(limit)
-        .toList();
-    } catch (e) {
-      print('Error getting top trends: $e');
-      return [];
-    }
+    final db = await database;
+    final txn = db.transaction(['trends'], 'readonly');
+    final trendsStore = txn.objectStore('trends');
+    final trends = await trendsStore.getAll();
+    await txn.completed;
+    return List<Map<String, dynamic>>.from(trends)
+      ..sort((a, b) => (b['views'] as int).compareTo(a['views'] as int))
+      ..take(limit)
+      .toList();
   }
 
   Future<Map<String, dynamic>> getKeywordTrends() async {
-    try {
-      final statsJson = html.window.localStorage[STATS_KEY] ?? '{}';
-      final stats = Map<String, dynamic>.from(json.decode(statsJson));
+    final db = await database;
+    final txn = db.transaction(['stats'], 'readonly');
+    final statsStore = txn.objectStore('stats');
+    final stats = await statsStore.getAll();
+    await txn.completed;
 
-      final results = stats.entries.map((entry) => {
-        'keyword': entry.key,
-        'count': entry.value['total_count'],
-        'avg_views': entry.value['avg_views'],
-        'avg_likes': entry.value['avg_likes'],
-      }).toList()
-        ..sort((a, b) => (b['count'] as int).compareTo(a['count'] as int))
-        ..take(20);
+    final results = List<Map<String, dynamic>>.from(stats)
+      ..sort((a, b) => (b['total_count'] as int).compareTo(a['total_count'] as int))
+      ..take(20);
 
-      return {
-        'keywords': results.map((r) => r['keyword']).toList(),
-        'counts': results.map((r) => r['count']).toList(),
-        'avgViews': results.map((r) => r['avg_views']).toList(),
-        'avgLikes': results.map((r) => r['avg_likes']).toList(),
-      };
-    } catch (e) {
-      print('Error getting keyword trends: $e');
-      return {
-        'keywords': [],
-        'counts': [],
-        'avgViews': [],
-        'avgLikes': [],
-      };
-    }
+    return {
+      'keywords': results.map((r) => r['keyword']).toList(),
+      'counts': results.map((r) => r['total_count']).toList(),
+      'avgViews': results.map((r) => r['avg_views']).toList(),
+      'avgLikes': results.map((r) => r['avg_likes']).toList(),
+    };
   }
 } 

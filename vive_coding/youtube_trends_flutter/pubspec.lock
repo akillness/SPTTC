@@ -136,6 +136,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  idb_shim:
+    dependency: "direct main"
+    description:
+      name: idb_shim
+      sha256: d3dae2085f2dcc9d05b851331fddb66d57d3447ff800de9676b396795436e135
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.5+1"
   intl:
     dependency: "direct main"
     description:
@@ -201,7 +209,7 @@ packages:
     source: hosted
     version: "1.16.0"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       sha256: "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"
@@ -272,6 +280,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  sembast:
+    dependency: transitive
+    description:
+      name: sembast
+      sha256: "06b0274ca48ea92aedeab62303fc9ade3272684c842e9447be3e9b040f935559"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.8.4+1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -309,6 +325,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  synchronized:
+    dependency: transitive
+    description:
+      name: synchronized
+      sha256: "0669c70faae6270521ee4f05bffd2919892d42d1276e6c495be80174b6bc0ef6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.3.1"
   term_glyph:
     dependency: transitive
     description:
