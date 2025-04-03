@@ -246,12 +246,14 @@ class _TrendsScreenState extends State<TrendsScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      NumberFormat.compact().format(item.views),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: rank <= 10 ? FontWeight.bold : FontWeight.normal,
-                                        color: const Color(0xFF4A6FFF),
+                                    Flexible(
+                                      child: Text(
+                                        NumberFormat.compact().format(item.views),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: rank <= 10 ? FontWeight.bold : FontWeight.normal,
+                                          color: const Color(0xFF4A6FFF),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -274,12 +276,14 @@ class _TrendsScreenState extends State<TrendsScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      NumberFormat.compact().format(item.likes),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: rank <= 10 ? FontWeight.bold : FontWeight.normal,
-                                        color: const Color(0xFFFF4A4A),
+                                    Flexible(
+                                      child: Text(
+                                        NumberFormat.compact().format(item.likes),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: rank <= 10 ? FontWeight.bold : FontWeight.normal,
+                                          color: const Color(0xFFFF4A4A),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -575,12 +579,13 @@ class _TrendsScreenState extends State<TrendsScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           labelColor: Colors.white,
-                          unselectedLabelColor: Color(0xFF94A3B8),
+                          unselectedLabelColor: const Color(0xFF94A3B8),
                           labelStyle: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                           dividerColor: Colors.transparent,
+                          indicatorSize: TabBarIndicatorSize.tab,
                           tabs: const [
                             Tab(
                               height: 48,
