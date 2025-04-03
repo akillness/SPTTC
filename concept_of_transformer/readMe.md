@@ -13,17 +13,16 @@
 
 
 
-
 ## DeepSeek R1 1.5B Local Test
 
 > [!IMPORTANT] 
 > Description : DeepSeek R1 distill qwen 1.5B Model, Local Web Socket Server 
 > - Code : https://github.com/akillness/SPTTC/blob/main/concept_of_transformer/chatbot/web-server.py
 
-<img src="imgs/chatbot_system_for_readme.png">
+<img src="imgs/chatbot_system_for_readme.png" style="width:70%;, height:100;">
 
 
-<img src="imgs/chatbot_system_for_readme_2.gif">
+<img src="imgs/chatbot_system_for_readme_2.gif" style="width:70%;, height:100;">
 
 ## TinyLlama-1.1B-Chat-v1.0 Local CoT Streaming Test
 
