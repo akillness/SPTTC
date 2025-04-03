@@ -52,29 +52,21 @@ class KeywordTypography extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Wrap(
-        spacing: 12.0,
-        runSpacing: 12.0,
+        spacing: 8.0,
+        runSpacing: 8.0,
         children: keywordFrequency.entries.map((entry) {
-          final fontSize = 14.0 + (entry.value / maxFrequency * 24.0);
+          final fontSize = 10.0 + (entry.value / maxFrequency * 8.0);
           final color = _getColorForFrequency(entry.value, maxFrequency.toInt());
           
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: color.withOpacity(0.3),
-                width: 1,
+                color: color.withOpacity(0.2),
+                width: 0.5,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.1),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -83,16 +75,16 @@ class KeywordTypography extends StatelessWidget {
                   entry.key,
                   style: TextStyle(
                     fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+                    fontWeight: FontWeight.w500,
+                    color: color.withOpacity(0.8),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 3),
                 Text(
-                  '(${entry.value})',
+                  '${entry.value}',
                   style: TextStyle(
-                    fontSize: fontSize * 0.7,
-                    color: color.withOpacity(0.7),
+                    fontSize: fontSize * 0.8,
+                    color: color.withOpacity(0.6),
                   ),
                 ),
               ],

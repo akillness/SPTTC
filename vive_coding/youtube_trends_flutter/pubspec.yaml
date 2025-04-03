@@ -1,20 +1,21 @@
 name: youtube_trends_flutter
-description: A new Flutter project.
+description: "A YouTube trends analysis application"
 publish_to: 'none'
+
 version: 1.0.0+1
 
 environment:
-  sdk: '^3.7.0'
+  sdk: '>=3.2.3 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  fl_chart: ^0.66.2
+  fl_chart: ^0.66.0
+  http: ^1.1.0
   intl: ^0.19.0
-  http: ^1.2.0
-  url_launcher: ^6.2.5
   google_fonts: ^6.1.0
+  url_launcher: ^6.1.14
 
 dev_dependencies:
   flutter_test:

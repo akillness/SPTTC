@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/youtube_data.dart';
 import '../models/api_response.dart';
+import 'database_helper.dart';
 
 class ApiService {
   static const String _apiKey = 'AIzaSyCE9hxzOP0uYI0YbrPNJFG1I_w-PRW9Usc';
   static const String _baseUrl = 'https://www.googleapis.com/youtube/v3';
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   
   Future<ApiResponse> getTrends() async {
     try {
@@ -18,6 +20,11 @@ class ApiService {
         final items = (data['items'] as List)
             .map((item) => YoutubeData.fromVideoItem(item))
             .toList();
+            
+        // 데이터베이스에 저장
+        for (final item in items) {
+          await _dbHelper.insertTrend(item);
+        }
             
         return ApiResponse(
           items: items,
@@ -88,6 +95,90 @@ class ApiService {
         final items = (videosData['items'] as List)
             .map((item) => YoutubeData.fromVideoItem(item))
             .toList();
+            
+        // 데이터베이스에 저장
+        for (final item in items) {
+          await _dbHelper.insertTrend(item);
+        }
+            
+        return ApiResponse(
+          items: items,
+          total: items.length,
+          currentPage: 1,
+          totalPages: 1
+        );
+      } else {
+        print('Error fetching video details: ${videosResponse.statusCode}');
+        return ApiResponse(
+          items: [],
+          total: 0,
+          currentPage: 1,
+          totalPages: 1
+        );
+      }
+    } catch (e) {
+      print('Error searching trends: $e');
+      return ApiResponse(
+        items: [],
+        total: 0,
+        currentPage: 1,
+        totalPages: 1
+      );
+    }
+  }
+  
+  Future<Map<String, dynamic>> getKeywordAnalysis() async {
+    return await _dbHelper.getKeywordTrends();
+  }
+  
+  Future<List<Map<String, dynamic>>> getTopTrends({int limit = 10}) async {
+    return await _dbHelper.getTopTrends(limit: limit);
+  }
+
+  Future<ApiResponse> getTrendsByKeyword(String keyword) async {
+    try {
+      final searchResponse = await http.get(
+        Uri.parse('$_baseUrl/search?part=snippet&q=$keyword&type=video&regionCode=KR&maxResults=50&key=$_apiKey'),
+      );
+
+      if (searchResponse.statusCode != 200) {
+        print('Error searching trends: ${searchResponse.statusCode}');
+        return ApiResponse(
+          items: [],
+          total: 0,
+          currentPage: 1,
+          totalPages: 1
+        );
+      }
+
+      final searchData = json.decode(searchResponse.body);
+      final videoIds = (searchData['items'] as List)
+          .map((item) => item['id']['videoId'])
+          .join(',');
+
+      if (videoIds.isEmpty) {
+        return ApiResponse(
+          items: [],
+          total: 0,
+          currentPage: 1,
+          totalPages: 1
+        );
+      }
+
+      final videosResponse = await http.get(
+        Uri.parse('$_baseUrl/videos?part=snippet,statistics&id=$videoIds&key=$_apiKey'),
+      );
+
+      if (videosResponse.statusCode == 200) {
+        final videosData = json.decode(videosResponse.body);
+        final items = (videosData['items'] as List)
+            .map((item) => YoutubeData.fromVideoItem(item))
+            .toList();
+            
+        // 데이터베이스에 저장
+        for (final item in items) {
+          await _dbHelper.insertTrend(item);
+        }
             
         return ApiResponse(
           items: items,

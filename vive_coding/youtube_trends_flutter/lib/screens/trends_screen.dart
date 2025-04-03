@@ -194,11 +194,10 @@ class _TrendsScreenState extends State<TrendsScreen> {
                                         Flexible(
                                           child: Text(
                                             item.title,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 14,
-                                              fontWeight: rank <= 10 ? FontWeight.bold : FontWeight.normal,
-                                              color: const Color(0xFF4A6FFF),
-                                              decoration: TextDecoration.underline,
+                                              color: Color(0xFF2C3E50),
+                                              fontWeight: FontWeight.w500,
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                             maxLines: 2,
@@ -212,7 +211,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: const Icon(
-                                            Icons.launch,
+                                            Icons.play_circle_outline,
                                             size: 16,
                                             color: Color(0xFF4A6FFF),
                                           ),
@@ -283,41 +282,46 @@ class _TrendsScreenState extends State<TrendsScreen> {
                                   constraints: BoxConstraints(
                                     maxWidth: MediaQuery.of(context).size.width * 0.2,
                                   ),
-                                  child: Wrap(
-                                    spacing: 4,
-                                    runSpacing: 4,
-                                    children: item.keywords.map((keyword) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Color(0xFF4A6FFF),
-                                              Color(0xFF6B8AFF),
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(16),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: const Color(0xFF4A6FFF).withOpacity(0.2),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: item.keywords.map((keyword) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(right: 4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
                                             ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          keyword,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white,
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  Color(0xFF4A6FFF),
+                                                  Color(0xFF6B8AFF),
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(16),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF4A6FFF).withOpacity(0.2),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              keyword,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    }).toList(),
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -411,90 +415,115 @@ class _TrendsScreenState extends State<TrendsScreen> {
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
+                          letterSpacing: -0.5,
                         ),
                       ),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: _loadTrends,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.refresh, color: Colors.white),
+                          onPressed: _loadTrends,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: '검색어를 입력하세요',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 15,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                            ),
+                            onChanged: (value) => _searchQuery = value,
+                            onSubmitted: (_) => _searchTrends(),
                           ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(right: 4),
                           child: Row(
                             children: [
-                              Expanded(
-                                child: TextField(
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: InputDecoration(
-                                    hintText: '검색어를 입력하세요',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    prefixIcon: Icon(
-                                      Icons.search,
-                                      color: Colors.white.withOpacity(0.7),
-                                    ),
+                              ElevatedButton(
+                                onPressed: _searchTrends,
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF4A6FFF),
+                                  backgroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
                                   ),
-                                  onChanged: (value) => _searchQuery = value,
-                                  onSubmitted: (_) => _searchTrends(),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '검색',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-                              Container(
-                                margin: const EdgeInsets.only(right: 4),
-                                child: ElevatedButton.icon(
-                                  onPressed: _searchTrends,
-                                  icon: const Icon(Icons.search),
-                                  label: const Text('검색'),
-                                  style: ElevatedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF4A6FFF),
-                                    backgroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: _loadTrends,
+                                icon: const Icon(
+                                  Icons.trending_up,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  '트렌드 분석',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: const Color(0xFF4A6FFF),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: _loadTrends,
-                        icon: const Icon(Icons.trending_up),
-                        label: const Text('트렌드 검색'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: const Color(0xFF4A6FFF),
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -527,6 +556,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
                           ],
                         ),
                         child: TabBar(
+                          padding: const EdgeInsets.all(4),
                           indicator: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [
@@ -534,19 +564,23 @@ class _TrendsScreenState extends State<TrendsScreen> {
                                 Color(0xFF6B8AFF),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           labelColor: Colors.white,
-                          unselectedLabelColor: Colors.grey.shade600,
+                          unselectedLabelColor: Color(0xFF94A3B8),
                           labelStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
                           ),
+                          dividerColor: Colors.transparent,
                           tabs: const [
                             Tab(
+                              height: 48,
                               icon: Icon(Icons.table_chart),
                               text: '데이터 테이블',
                             ),
                             Tab(
+                              height: 48,
                               icon: Icon(Icons.analytics),
                               text: '차트 분석',
                             ),
