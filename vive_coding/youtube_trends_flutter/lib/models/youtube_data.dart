@@ -1,5 +1,6 @@
 class YoutubeData {
   final String title;
+  final String videoId;
   final int likes;
   final int views;
   final List<String> keywords;
@@ -7,6 +8,7 @@ class YoutubeData {
 
   YoutubeData({
     required this.title,
+    required this.videoId,
     required this.likes,
     required this.views,
     required this.keywords,
@@ -17,9 +19,11 @@ class YoutubeData {
     final snippet = item['snippet'] as Map<String, dynamic>;
     final statistics = item['statistics'] as Map<String, dynamic>;
     final title = snippet['title'] as String;
+    final videoId = item['id'] as String;
     
     return YoutubeData(
       title: title,
+      videoId: videoId,
       likes: int.tryParse(statistics['likeCount']?.toString() ?? '0') ?? 0,
       views: int.tryParse(statistics['viewCount']?.toString() ?? '0') ?? 0,
       keywords: _extractKeywords(title),

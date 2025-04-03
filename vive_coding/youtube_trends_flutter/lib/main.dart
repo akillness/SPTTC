@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/trends_screen.dart';
 
 void main() {
@@ -14,7 +15,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'YouTube 트렌드 분석',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF4A6FFF),
+          brightness: Brightness.light,
+        ),
+        textTheme: GoogleFonts.notoSansKrTextTheme(),
         useMaterial3: true,
       ),
       home: const TrendsScreen(),
