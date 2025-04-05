@@ -41,8 +41,8 @@ LORA_TARGET_MODULES = [
 ]
 
 # 학습 설정 (L4 최적화)
-BATCH_SIZE = 4                     # 기존 2 → L4에서 가능한 최대 배치
-GRADIENT_ACCUMULATION_STEPS = 8    # 기존 16 → 유효 배치 크기 유지 (4×8=32)
+BATCH_SIZE = 2                     # 4 → 2로 감소
+GRADIENT_ACCUMULATION_STEPS = 16   # 8 → 16으로 증가 (유효 배치 크기 유지)
 LEARNING_RATE = 3e-4               # 기존 5e-4 → 낮은 LR로 안정성 확보
 NUM_EPOCHS = 1                     # 변동 없음 (소형 모델 특성)
 MAX_LENGTH = 512                   # 변동 없음 (VRAM 한계)
@@ -70,6 +70,11 @@ class CustomCallback(TrainerCallback):
                 print(f"{key}: {value:.4f}")
             print("=" * 50)
         return control
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if "loss" in logs:
+            print(f"[Progress] {state.global_step/state.max_steps*100:.1f}% 완료")
+            print(f"[메모리 사용량] GPU: {torch.cuda.memory_allocated()/1e9:.1f}GB")
 
 # 데이터 로딩 및 준비 함수
 def load_and_prepare_data():
@@ -188,8 +193,9 @@ def prepare_model_and_tokenizer():
     print("Loading base model...")
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
-        torch_dtype=torch.float16,
+        torch_dtype=torch.bfloat16,
         device_map="auto",
+        attn_implementation="flash_attention_2",
         cache_dir=DATA_DIR
     )
 
@@ -254,15 +260,13 @@ def main():
     
     def tokenize_function(examples):
         texts = [text + tokenizer.eos_token for text in examples["text"]]
-        tokenized = tokenizer(
+        return tokenizer(
             texts,
             truncation=True,
             max_length=MAX_LENGTH,
-            padding="max_length",
-            return_tensors=None
+            padding="longest",
+            return_tensors="pt"
         )
-        tokenized["labels"] = tokenized["input_ids"].copy()
-        return tokenized
 
     print("Tokenizing training dataset...")
     tokenized_train = train_dataset.map(
@@ -304,12 +308,14 @@ def main():
         warmup_ratio=WARMUP_RATIO,
         logging_steps=10,
         save_strategy="steps",
-        save_steps=500,
+        save_steps=100,
         evaluation_strategy="steps",
-        eval_steps=500,
+        eval_steps=100,
         fp16=True,
         gradient_checkpointing=True,
-        dataloader_num_workers=2,  # Reduced number of workers
+        dataloader_num_workers=4,  # CPU 코어 수에 맞게 증가
+        dataloader_prefetch_factor=2,  # 추가
+        dataloader_persistent_workers=True,  # 추가
         remove_unused_columns=True,
         load_best_model_at_end=True,
         metric_for_best_model="loss",

@@ -42,53 +42,43 @@ class DeepAgent:
         
         # 모델 경로 지정
         self.model_path = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-        self.cache_dir = 'smolagent/model_cache'
+        self.cache_dir = './model_cache'
         
         try:
             # 토크나이저 & 모델 로드
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.model_path, 
                 cache_dir=self.cache_dir,
-                local_files_only=True  # 로컬 캐시만 사용
+                trust_remote_code=True
             )
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_path,
                 device_map="cpu",
                 cache_dir=self.cache_dir,
-                torch_dtype=torch.float32,  # float32로 설정
-                low_cpu_mem_usage=True,  # 낮은 CPU 메모리 사용
-                pad_token_id=self.tokenizer.eos_token_id,  # 명시적으로 pad token 설정
-                local_files_only=True  # 로컬 캐시만 사용
+                torch_dtype=torch.float32,
+                low_cpu_mem_usage=True,
+                trust_remote_code=True
             )
             
-            # pad token 설정
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.model.config.pad_token_id = self.model.config.eos_token_id
-            self.model.generation_config.pad_token_id = self.model.config.eos_token_id
-            
-            # 스트리밍 파이프라인 구성
+            # 스트리밍 설정
             self.streamer = TextIteratorStreamer(
                 self.tokenizer,
                 skip_prompt=True,
                 skip_special_tokens=True
             )
             
-            self.generation_config = {
-                "do_sample": True,
-                "max_new_tokens": 512,
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "repetition_penalty": 1.2,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                "eos_token_id": self.tokenizer.eos_token_id,
-            }
-            
+            # 파이프라인 설정
             self.pipe = pipeline(
                 "text-generation",
                 model=self.model,
                 tokenizer=self.tokenizer,
                 streamer=self.streamer,
-                **self.generation_config
+                return_full_text=False,
+                max_new_tokens=256,
+                do_sample=True,
+                temperature=0.7,
+                top_p=0.9,
+                repetition_penalty=1.2,
             )
             
             logging.info(f"{self.name} 에이전트가 성공적으로 초기화되었습니다.")
@@ -103,17 +93,8 @@ class DeepAgent:
 다음 규칙을 반드시 따라주세요:
 1. 한국어로 된 질문에는 반드시 한국어로 답변해주세요.
 2. 영어로 된 질문에는 영어로 답변해주세요.
-3. 응답은 명확하고 구체적이어야 합니다.
-4. 프로그래밍 관련 질문에는 실행 가능한 코드 예제를 포함해주세요.
-
-당신은 다음과 같은 도구들을 사용할 수 있습니다:
-1. Calculator - 수학 계산을 수행합니다.
-2. Search - 인터넷에서 정보를 검색합니다.
-
-각 작업을 수행할 때는 다음과 같은 형식으로 응답해주세요:
-1. 먼저 어떤 도구를 사용할지 결정합니다.
-2. 도구를 사용하여 정보를 수집합니다.
-3. 수집된 정보를 바탕으로 답변을 작성합니다."""
+3. 답변은 명확하고 이해하기 쉽게 작성해주세요.
+4. 답변은 항상 친절하고 도움이 되는 방식으로 해주세요."""
                     
     def _manage_memory(self):
         """메모리 관리 함수
@@ -205,36 +186,72 @@ class DeepAgent:
             logging.info("응답 생성 중...")
             
             # 프롬프트 포맷팅
-            formatted_prompt = f"""아래는 AI 어시스턴트와 사용자의 대화입니다. AI 어시스턴트는 친절하고 도움이 되는 방식으로 응답합니다.
+            formatted_prompt = f"""<|im_start|>system
+당신은 한국어와 영어를 모두 구사할 수 있는 AI 어시스턴트입니다.
+사용자의 질문에 대해 정확하고 유용한 정보를 제공해주세요.
+답변은 친절하고 자연스러운 대화체로 작성해주세요.
+불확실한 정보는 제공하지 마세요.
 
-시스템: {self.system_message}
-
-사용자: {prompt}
-
-어시스턴트: 네, 말씀하신 내용에 대해 답변드리겠습니다.
+{self.system_message}
+<|im_end|>
+<|im_start|>user
+{prompt}
+<|im_end|>
+<|im_start|>assistant
 """
             
-            # 파이프라인 스레드 시작
-            generation_thread = threading.Thread(
-                target=self.pipe,
-                args=(formatted_prompt,),
-                kwargs={'num_return_sequences': 1}
-            )
-            generation_thread.start()
+            # 입력 토큰화
+            inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
+            
+            # 생성 파라미터 설정
+            gen_kwargs = {
+                "input_ids": inputs["input_ids"],
+                "max_new_tokens": 512,  # 더 긴 응답을 위해 토큰 수 증가
+                "do_sample": True,
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "repetition_penalty": 1.2,
+                "pad_token_id": self.tokenizer.eos_token_id,
+                "eos_token_id": self.tokenizer.eos_token_id,
+                "streamer": self.streamer
+            }
             
             # 스트리밍 처리
             print(f"\n[응답 생성 중] ", end="", flush=True)
             response = ""
+            
+            # 별도의 스레드에서 생성 실행
+            generation_thread = threading.Thread(
+                target=self.model.generate,
+                kwargs=gen_kwargs
+            )
+            generation_thread.start()
+            
+            # 스트리밍된 토큰 처리
             for token in self.streamer:
                 response += token
                 print(token, end="", flush=True)
-            
-            print("\n")
-            logging.info("응답 생성 완료")
+                
+                # <|im_end|> 토큰이 나타나면 생성 중단
+                if "<|im_end|>" in response:
+                    break
             
             # 응답 정제
-            if "어시스턴트:" in response:
-                response = response.split("어시스턴트:")[-1].strip()
+            response = response.strip()
+            if "<|im_end|>" in response:
+                response = response.split("<|im_end|>")[0].strip()
+            
+            # 특수 토큰과 불필요한 텍스트 제거
+            response = response.replace("<|im_start|>", "").replace("<|im_end|>", "")
+            response = response.replace("<|start|>", "").replace("<|end|>", "")
+            response = response.replace("system", "").replace("user", "").replace("assistant", "")
+            response = response.replace("responses:", "").replace("</think>", "")
+            
+            # 연속된 공백 제거
+            response = " ".join(response.split())
+            
+            print(f"\n응답: {response}\n")
+            logging.info("응답 생성 완료")
             
             return response
             
@@ -262,35 +279,15 @@ class DeepAgent:
             ])
             
             # 사용자 메시지 생성
-            prompt = f"{self.system_message}\n\n이전 대화 기록:\n{memory_str}\n\n현재 작업: {task}\n\n이 작업을 해결하기 위해 어떻게 하시겠습니까?"
+            prompt = task
             
             # DeepSeek 모델로 응답 생성
-            gpt_response = self._generate_response(prompt)
-            
-            # 도구 사용이 필요한 경우 처리
-            if "Calculator" in gpt_response and "*" in task:
-                # 수학 계산 수행
-                numbers = self._extract_numbers(task)
-                if len(numbers) >= 2:
-                    result = self._calculate(f"{numbers[0]} * {numbers[1]}")
-                    final_response = f"계산 결과: {result}"
-                else:
-                    final_response = "계산에 필요한 숫자를 찾을 수 없습니다."
-            
-            elif "Search" in gpt_response and ("노벨" in task or "Nobel" in task):
-                # 검색 수행
-                search_result = self._search(task)
-                final_response = search_result
-            
-            else:
-                # 직접 답변 요청
-                follow_up_prompt = f"{self.system_message}\n\n이전 대화 기록:\n{memory_str}\n\n현재 작업: {task}\n\n위 작업에 대해 직접 답변해주세요."
-                final_response = self._generate_response(follow_up_prompt)
+            response = self._generate_response(prompt)
             
             # 결과를 메모리에 저장
             self.memory.append({
                 "task": task,
-                "result": final_response,
+                "result": response,
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -298,7 +295,7 @@ class DeepAgent:
             self._manage_memory()
             
             logging.info("작업 완료")
-            return final_response
+            return response
             
         except Exception as e:
             error_msg = f"작업 실행 중 예상치 못한 오류 발생: {str(e)}"

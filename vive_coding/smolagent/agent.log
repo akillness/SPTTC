@@ -54,3 +54,66 @@
 2025-04-06 00:11:21,000 - INFO - 응답 생성 중...
 2025-04-06 00:11:36,843 - INFO - 응답 생성 완료
 2025-04-06 00:11:36,844 - INFO - 응답 생성 중...
+2025-04-06 00:15:06,066 - ERROR - 모델 초기화 중 오류 발생: We couldn't connect to 'https://huggingface.co' to load this file, couldn't find it in the cached files and it looks like deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B is not the path to a directory containing a file named config.json.
+Checkout your internet connection or see how to run the library in offline mode at 'https://huggingface.co/docs/transformers/installation#offline-mode'.
+2025-04-06 00:15:06,066 - ERROR - 프로그램 실행 중 오류 발생: We couldn't connect to 'https://huggingface.co' to load this file, couldn't find it in the cached files and it looks like deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B is not the path to a directory containing a file named config.json.
+Checkout your internet connection or see how to run the library in offline mode at 'https://huggingface.co/docs/transformers/installation#offline-mode'.
+2025-04-06 00:15:32,761 - ERROR - 모델 초기화 중 오류 발생: We couldn't connect to 'https://huggingface.co' to load this file, couldn't find it in the cached files and it looks like deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B is not the path to a directory containing a file named config.json.
+Checkout your internet connection or see how to run the library in offline mode at 'https://huggingface.co/docs/transformers/installation#offline-mode'.
+2025-04-06 00:15:32,761 - ERROR - 프로그램 실행 중 오류 발생: We couldn't connect to 'https://huggingface.co' to load this file, couldn't find it in the cached files and it looks like deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B is not the path to a directory containing a file named config.json.
+Checkout your internet connection or see how to run the library in offline mode at 'https://huggingface.co/docs/transformers/installation#offline-mode'.
+2025-04-06 00:27:39,708 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:28:08,049 - INFO - 작업 시작: 대한민국 수도에 대해 알려줘
+2025-04-06 00:28:08,050 - INFO - 응답 생성 중...
+2025-04-06 00:28:47,927 - INFO - 응답 생성 완료
+2025-04-06 00:28:47,928 - INFO - 응답 생성 중...
+2025-04-06 00:32:23,388 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:34:17,757 - INFO - 작업 시작: 하쿠나마타타 알려줘
+2025-04-06 00:34:17,761 - INFO - 응답 생성 중...
+2025-04-06 00:35:16,280 - INFO - 응답 생성 완료
+2025-04-06 00:35:16,282 - INFO - 응답 생성 중...
+2025-04-06 00:36:11,325 - INFO - 응답 생성 완료
+2025-04-06 00:36:11,326 - INFO - 작업 완료
+2025-04-06 00:41:33,150 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:41:42,839 - INFO - 작업 시작: 하쿠나 마타타 알려줘
+2025-04-06 00:41:42,840 - INFO - 응답 생성 중...
+2025-04-06 00:43:58,562 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:44:07,431 - INFO - 작업 시작: 하쿠나 마타타 설명해줘
+2025-04-06 00:44:07,431 - INFO - 응답 생성 중...
+2025-04-06 00:45:43,110 - INFO - 응답 생성 완료
+2025-04-06 00:45:43,112 - INFO - 응답 생성 중...
+2025-04-06 00:46:06,047 - INFO - 응답 생성 완료
+2025-04-06 00:46:06,048 - INFO - 작업 완료
+2025-04-06 00:48:35,640 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:48:45,454 - INFO - 작업 시작: 하쿠나마타타 설명해줘
+2025-04-06 00:48:45,456 - INFO - 응답 생성 중...
+2025-04-06 00:51:15,853 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:51:29,041 - INFO - 작업 시작: 하쿠나 마타타 설명해줘
+2025-04-06 00:51:29,042 - INFO - 응답 생성 중...
+2025-04-06 00:51:39,792 - INFO - 응답 생성 완료
+2025-04-06 00:51:39,793 - INFO - 응답 생성 중...
+2025-04-06 00:51:39,990 - INFO - 응답 생성 완료
+2025-04-06 00:51:39,990 - INFO - 작업 완료
+2025-04-06 00:52:04,478 - INFO - 작업 시작: 파이썬의 장점 두가지알려줘
+2025-04-06 00:52:04,479 - INFO - 응답 생성 중...
+2025-04-06 00:52:04,480 - INFO - 응답 생성 완료
+2025-04-06 00:52:04,480 - INFO - 응답 생성 중...
+2025-04-06 00:52:04,486 - INFO - 응답 생성 완료
+2025-04-06 00:52:04,486 - INFO - 작업 완료
+2025-04-06 00:54:13,824 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:54:30,887 - INFO - 작업 시작: 하쿠나마타타 설명해줘
+2025-04-06 00:54:30,887 - INFO - 응답 생성 중...
+2025-04-06 00:56:07,491 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:56:24,635 - INFO - 작업 시작: 하쿠나마타타 실행해줘
+2025-04-06 00:56:24,636 - INFO - 응답 생성 중...
+2025-04-06 00:58:31,762 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 00:58:37,622 - INFO - 작업 시작: 워아이니
+2025-04-06 00:58:37,622 - INFO - 응답 생성 중...
+2025-04-06 00:58:58,412 - INFO - 응답 생성 완료
+2025-04-06 00:58:58,413 - INFO - 작업 완료
+2025-04-06 00:59:24,605 - INFO - 작업 시작: 서울위치
+2025-04-06 00:59:24,605 - INFO - 응답 생성 중...
+2025-04-06 01:00:08,440 - INFO - 응답 생성 완료
+2025-04-06 01:00:08,442 - INFO - 작업 완료
+2025-04-06 01:01:41,834 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
+2025-04-06 01:04:56,843 - INFO - 딥도우미 에이전트가 성공적으로 초기화되었습니다.
