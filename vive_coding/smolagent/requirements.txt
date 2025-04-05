@@ -1,0 +1,13 @@
+selenium==4.16.0
+undetected-chromedriver==3.5.4
+python-dotenv==1.0.0
+openai==1.58.1
+langchain==0.1.12
+langchain-openai==0.0.8
+langchain-community==0.0.38
+python-dotenv==1.0.0
+transformers==4.38.2
+torch==2.2.1
+langgraph==0.0.26
+langchain-core==0.1.31
+accelerate==0.27.2 
