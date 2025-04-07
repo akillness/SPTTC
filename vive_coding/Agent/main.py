@@ -55,14 +55,14 @@ class AgentAI:
         
         # 시스템 메시지 설정 (이 부분은 AgentAI의 설명 용도로 유지 가능)
         self.system_message = f"""당신은 {name}이라는 이름의 AI 에이전트입니다.
-{description}
+            {description}
 
-당신은 다음과 같은 작업들을 수행할 수 있습니다:
-1. 파일 관리
-2. 코드 실행
-3. 검색
-4. 계산
-각 작업을 수행할 때는 적절한 도구를 선택하여 사용하겠습니다."""
+            당신은 다음과 같은 작업들을 수행할 수 있습니다:
+            1. 파일 관리
+            2. 코드 실행
+            3. 검색
+            4. 계산
+            각 작업을 수행할 때는 적절한 도구를 선택하여 사용하겠습니다."""
 
     def run_interactive(self):
         """대화형 모드로 실행"""
@@ -200,11 +200,8 @@ class AgentAI:
     def _format_execution_result(self, execution_result_str: str) -> str:
         """CodeExecutor 결과를 사용자 친화적 메시지로 포맷"""
         if execution_result_str.startswith("ModuleNotFoundError: "):
-            missing_module = execution_result_str.split(": ")[1].strip()
-            if missing_module == '_tkinter':
-                return f"[오류] Tkinter GUI 라이브러리가 설치되지 않았거나 Python 환경에서 인식되지 않습니다.\nmacOS의 경우 'brew install python-tk' 후 Python 재설치 등을 시도해 보세요."
-            else:
-                return f"[오류] 코드를 실행하려면 '{missing_module}' 패키지가 필요합니다.\n터미널에서 'pip install {missing_module}' 명령어로 설치해주세요."
+            missing_module = execution_result_str.split(": ")[1].strip()            
+            return f"[오류] 코드를 실행하려면 '{missing_module}' 패키지가 필요합니다.\n터미널에서 'pip install {missing_module}' 명령어로 설치해주세요."
         elif execution_result_str.startswith("FileNotFoundError: Required command "):
             missing_command = re.search(r"'(.+?)'", execution_result_str).group(1)
             return f"[오류] 코드 실행에 필요한 '{missing_command}' 명령어를 찾을 수 없습니다.\n관련 언어/도구를 설치하고 PATH 환경 변수를 확인해주세요."
@@ -429,8 +426,8 @@ class AgentAI:
 if __name__ == "__main__":
     # 에이전트 생성
     agent = AgentAI(
-        name="도우미",
-        description="저는 여러분의 질문에 답하고 작업을 도와주는 AI 에이전트입니다.",
+        name="코더",
+        description="검색과 코드 생성을 도와주는 AI 에이전트입니다.",
         memory_limit=5
     )
     
