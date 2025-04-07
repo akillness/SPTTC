@@ -132,18 +132,34 @@ class CodeGeneratorAgent:
                 required.append(package_name)
         return sorted(list(set(required))) # 중복 제거 및 정렬
 
-    def run(self, task: str, print_results: bool = False) -> Dict[str, Any]:
-        """작업 실행 (다국어 코드 생성, 패키지 감지, 실행 요청 감지)"""
+    def run(self, task: str, search_context: str | None = None, print_results: bool = False) -> Dict[str, Any]:
+        """작업 실행 (다국어 코드 생성, 패키지 감지, 실행 요청 감지)
+        
+        Args:
+            task (str): 사용자의 원본 작업 요청
+            search_context (str | None, optional): 웹 검색 결과 (요약). Defaults to None.
+            print_results (bool, optional): 결과를 콘솔에 출력할지 여부. Defaults to False.
+            
+        Returns:
+            Dict[str, Any]: 작업 처리 결과 딕셔너리
+        """
         
         detected_language, is_codegen_request, is_execution_request = self._detect_language_and_request(task)
 
         if is_codegen_request and detected_language:
             logging.info(f"LLM 코드 생성 요청 ({detected_language}): {task}")
+            
+            # 시스템 프롬프트 구성
+            system_prompt = f"You are a code generation assistant. Generate *only* the raw code in the requested language ({detected_language}) based on the user's request. Do not include any explanations, comments, markdown formatting (like ```{detected_language}), or introductory phrases. Just output the code itself."
+            if search_context:
+                system_prompt += f"\n\nUse the following search results as context if relevant:\n--- SEARCH CONTEXT ---\n{search_context}\n--- END SEARCH CONTEXT ---"
+                logging.info("코드 생성 시 검색 컨텍스트 사용")
+
             try:
                 response = self.client.chat.completions.create(
                     model="gpt-3.5-turbo", 
                     messages=[
-                        {"role": "system", "content": f"You are a code generation assistant. Generate *only* the raw code in the requested language ({detected_language}) based on the user's request. Do not include any explanations, comments, markdown formatting (like ```{detected_language}), or introductory phrases. Just output the code itself."},
+                        {"role": "system", "content": system_prompt},
                         {"role": "user", "content": f"Generate {detected_language} code for the following request: {task}"}
                     ],
                     temperature=0.5, 
