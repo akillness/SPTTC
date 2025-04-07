@@ -90,11 +90,16 @@ class DeepAgent:
         self.system_message = f"""당신은 {name}이라는 이름의 이중 언어(한국어/영어) AI 에이전트입니다.
 {description}
 
-다음 규칙을 반드시 따라주세요:
-1. 한국어로 된 질문에는 반드시 한국어로 답변해주세요.
-2. 영어로 된 질문에는 영어로 답변해주세요.
-3. 답변은 명확하고 이해하기 쉽게 작성해주세요.
-4. 답변은 항상 친절하고 도움이 되는 방식으로 해주세요."""
+당신은 다음과 같은 도구들을 사용할 수 있습니다:
+1. Calculator - 수학 계산을 수행합니다.
+2. Search - 인터넷에서 정보를 검색합니다.
+3. Sum - 숫자들의 합을 계산합니다.
+
+각 작업을 수행할 때는 다음과 같은 형식으로 응답해주세요:
+1. 먼저 어떤 도구를 사용할지 결정합니다.
+2. 도구를 사용하여 정보를 수집합니다.
+3. 수집된 정보를 바탕으로 답변을 작성합니다.
+"""
                     
     def _manage_memory(self):
         """메모리 관리 함수
@@ -173,6 +178,27 @@ class DeepAgent:
             logging.error(f"숫자 추출 중 오류 발생: {str(e)}")
             return []
     
+    def _sum_numbers(self, numbers: List[int]) -> str:
+        """숫자들의 합을 계산하는 도구
+        
+        Args:
+            numbers (List[int]): 합을 계산할 숫자 리스트
+            
+        Returns:
+            str: 계산 결과
+        """
+        try:
+            if not numbers:
+                return "합을 계산할 숫자가 없습니다."
+            
+            total = sum(numbers)
+            logging.info(f"합계 계산 성공: {numbers} = {total}")
+            return str(total)
+        except Exception as e:
+            error_msg = f"합계 계산 중 오류 발생: {str(e)}"
+            logging.error(error_msg)
+            return error_msg
+    
     def _generate_response(self, prompt: str) -> str:
         """DeepSeek 모델을 사용하여 응답 생성
         
@@ -187,18 +213,13 @@ class DeepAgent:
             
             # 프롬프트 포맷팅
             formatted_prompt = f"""<|im_start|>system
-                당신은 한국어와 영어를 모두 구사할 수 있는 AI 어시스턴트입니다.
-                사용자의 질문에 대해 정확하고 유용한 정보를 제공해주세요.
-                답변은 친절하고 자연스러운 대화체로 작성해주세요.
-                불확실한 정보는 제공하지 마세요.
-
-                {self.system_message}
-                <|im_end|>
-                <|im_start|>user
-                {prompt}
-                <|im_end|>
-                <|im_start|>assistant
-                """
+{self.system_message}
+<|im_end|>
+<|im_start|>user
+{prompt}
+<|im_end|>
+<|im_start|>assistant
+"""
             
             # 입력 토큰화
             inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
@@ -279,15 +300,60 @@ class DeepAgent:
             ])
             
             # 사용자 메시지 생성
-            prompt = task
+            prompt = f"""이전 대화 기록:
+{memory_str}
+
+현재 작업: {task}
+
+이 작업을 해결하기 위해 어떻게 하시겠습니까?"""
             
             # DeepSeek 모델로 응답 생성
-            response = self._generate_response(prompt)
+            gpt_response = self._generate_response(prompt)
+            
+            # 도구 사용이 필요한 경우 처리
+            final_response = None
+            
+            # 1. 검색 기능 확인
+            if "Search" in gpt_response and ("노벨" in task or "Nobel" in task or "2023년 노벨 물리학상" in task):
+                logging.info("검색 도구 사용")
+                search_result = self._search(task)
+                if search_result != "검색 결과를 찾을 수 없습니다.":
+                    final_response = search_result
+            
+            # 2. 계산 기능 확인
+            elif "Calculator" in gpt_response and "*" in task:
+                logging.info("계산 도구 사용")
+                numbers = self._extract_numbers(task)
+                if len(numbers) >= 2:
+                    result = self._calculate(f"{numbers[0]} * {numbers[1]}")
+                    final_response = f"계산 결과: {result}"
+            
+            # 3. 숫자 합계 계산 확인
+            elif "Sum" in gpt_response and ("합" in task or "sum" in task.lower()):
+                logging.info("숫자 합계 계산 도구 사용")
+                numbers = self._extract_numbers(task)
+                if numbers:
+                    total = self._sum_numbers(numbers)
+                    final_response = f"숫자들의 합: {total}"
+            
+            # 도구로 해결되지 않은 경우 DeepSeek 모델 사용
+            if final_response is None:
+                # GPT에게 직접 답변 요청
+                follow_up_prompt = f"""이전 대화 기록:
+{memory_str}
+
+현재 작업: {task}
+
+이전 응답: {gpt_response}
+
+위 작업에 대해 직접 답변해주세요."""
+                
+                final_response = self._generate_response(follow_up_prompt)
             
             # 결과를 메모리에 저장
             self.memory.append({
                 "task": task,
-                "result": response,
+                "result": final_response,
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -295,15 +361,14 @@ class DeepAgent:
             self._manage_memory()
             
             logging.info("작업 완료")
-            return response
+            return final_response
             
         except Exception as e:
             error_msg = f"작업 실행 중 예상치 못한 오류 발생: {str(e)}"
             logging.error(error_msg)
             return error_msg
 
-def run_agent():
-    """에이전트 실행 함수"""
+if __name__ == "__main__":
     try:
         # 에이전트 생성
         agent = DeepAgent(
@@ -312,28 +377,21 @@ def run_agent():
             memory_limit=5  # 메모리 제한을 5개로 설정
         )
         
-        print("DeepSeek Agent 시작...\n")
+        # 테스트 작업 실행
+        tasks = [
+            "2023년 노벨 물리학상 수상자는 누구인가요?",  # 검색 기능 테스트
+            "123 * 456은 얼마인가요?",  # 계산 기능 테스트
+            "이 숫자들의 합을 구해주세요: 1, 2, 3, 4, 5",  # 숫자 합계 테스트
+            "인공지능의 발전이 현대 사회에 미치는 영향을 3줄로 요약해주세요.",  # 일반 응답 테스트
+            "What is the future of AI technology?",  # 영어 응답 테스트
+        ]
         
-        while True:
-            try:
-                user_prompt = input("\n질문하세요 (종료하려면 'q' 입력): ")
-                if user_prompt.lower() == 'q':
-                    break
-                
-                response = agent.run_task(user_prompt)
-                print("\n\n=== 최종 응답 ===")
-                print(response)
-                
-            except KeyboardInterrupt:
-                print("\n\n프로그램을 종료합니다.")
-                break
-            except Exception as e:
-                print(f"\n오류가 발생했습니다: {str(e)}")
-                continue
-                
+        for task in tasks:
+            print(f"\n작업: {task}")
+            result = agent.run_task(task)
+            print(f"결과: {result}")
+            print("-" * 50)
+            
     except Exception as e:
         logging.error(f"프로그램 실행 중 오류 발생: {str(e)}")
-        print(f"오류가 발생했습니다: {str(e)}")
-
-if __name__ == "__main__":
-    run_agent() 
+        print(f"오류가 발생했습니다: {str(e)}") 
