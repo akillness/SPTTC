@@ -187,18 +187,18 @@ class DeepAgent:
             
             # 프롬프트 포맷팅
             formatted_prompt = f"""<|im_start|>system
-당신은 한국어와 영어를 모두 구사할 수 있는 AI 어시스턴트입니다.
-사용자의 질문에 대해 정확하고 유용한 정보를 제공해주세요.
-답변은 친절하고 자연스러운 대화체로 작성해주세요.
-불확실한 정보는 제공하지 마세요.
+                당신은 한국어와 영어를 모두 구사할 수 있는 AI 어시스턴트입니다.
+                사용자의 질문에 대해 정확하고 유용한 정보를 제공해주세요.
+                답변은 친절하고 자연스러운 대화체로 작성해주세요.
+                불확실한 정보는 제공하지 마세요.
 
-{self.system_message}
-<|im_end|>
-<|im_start|>user
-{prompt}
-<|im_end|>
-<|im_start|>assistant
-"""
+                {self.system_message}
+                <|im_end|>
+                <|im_start|>user
+                {prompt}
+                <|im_end|>
+                <|im_start|>assistant
+                """
             
             # 입력 토큰화
             inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
