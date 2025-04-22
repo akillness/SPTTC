@@ -359,6 +359,14 @@ def main():
 
         # Start training
         trainer.train()
+        
+        # Run evaluation
+        print("Running evaluation...")
+        eval_results = trainer.evaluate()
+        print("\n===== Evaluation Results =====")
+        for key, value in eval_results.items():
+            print(f"{key}: {value:.4f}")
+        print("=" * 50)
 
     except Exception as e:
         print(f"\nError during training: {str(e)}")
@@ -379,14 +387,6 @@ def main():
     print("Saving model...")
     trainer.save_model(OUTPUT_DIR)
     tokenizer.save_pretrained(OUTPUT_DIR)
-
-    # 최종 평가
-    print("Final evaluation...")
-    final_metrics = trainer.evaluate()
-    print("\n===== Final Evaluation Results =====")
-    for key, value in final_metrics.items():
-        print(f"{key}: {value:.4f}")
-    print("=" * 50)
 
     print(f"Training complete. Model saved to {OUTPUT_DIR}")
     print(f"TensorBoard logs saved to {TB_LOG_DIR}")
